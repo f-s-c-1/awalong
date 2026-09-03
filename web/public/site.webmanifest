@@ -1,0 +1,14 @@
+{
+  "name": "阿瓦隆",
+  "short_name": "阿瓦隆",
+  "description": "5-10 人在线阿瓦隆：实时语音、圆桌表决、刺客终局",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141019",
+  "theme_color": "#141019",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

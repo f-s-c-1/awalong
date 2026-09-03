@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <rect width="300" height="300" fill="#141019"/>
+  <circle cx="150" cy="130" r="150" fill="#C9A227" opacity="0.06"/>
+  <circle cx="150" cy="128" r="70" fill="none" stroke="#C9A227" stroke-width="1.6" opacity="0.5"/>
+  <circle cx="150" cy="128" r="62" fill="none" stroke="#C9A227" stroke-width="0.8" opacity="0.25"/>
+  <circle cx="150" cy="38" r="5.5" fill="none" stroke="#C9A227" stroke-width="2"/>
+  <rect x="146.5" y="45" width="7" height="20" rx="2" fill="#A8851C"/>
+  <path d="M120 72 Q150 62 180 72" fill="none" stroke="#141019" stroke-width="9" stroke-linecap="round"/>
+  <path d="M120 72 Q150 62 180 72" fill="none" stroke="#C9A227" stroke-width="5" stroke-linecap="round"/>
+  <path d="M144.5 73 L155.5 73 L153 168 L150 190 L147 168 Z" fill="#E4CF7A"/>
+  <line x1="150" y1="80" x2="150" y2="160" stroke="#141019" stroke-width="1.4" opacity="0.45"/>
+  <text x="150" y="246" text-anchor="middle" font-family="'Noto Serif SC','Songti SC','SimSun',serif" font-size="40" font-weight="900" fill="#EDE8F2" letter-spacing="8">阿瓦隆</text>
+  <text x="150" y="272" text-anchor="middle" font-family="Cinzel,'Times New Roman',serif" font-size="13" fill="#C9A227" letter-spacing="7">AVALON</text>
+</svg>

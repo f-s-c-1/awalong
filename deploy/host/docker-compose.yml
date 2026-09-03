@@ -23,7 +23,7 @@ services:
     env_file: .env
     environment:
       HOST: 127.0.0.1
-      PORT: "3000"
+      PORT: "3210"
       NODE_ENV: production
     volumes:
       - ./server:/app:ro

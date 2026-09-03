@@ -83,6 +83,10 @@ export function registerRoutes(app: FastifyInstance, users: UserStore, rooms: Ro
     if (!room) throw new GameError('NOT_IN_ROOM', '你不在任何房间中')
     const seat = rooms.seatOf(room, uid)
     if (!seat) throw new GameError('SPECTATOR', '旁观者不能加入语音')
-    return voice.token(room.code, { uid, seat: seat.seat, nickname: seat.nickname })
+    // 多域名共用一套反代时，信令地址跟随访问域名
+    const forwarded = req.headers['x-forwarded-host']
+    const host = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim() || req.headers.host
+    const publicUrl = host && voice.followHost ? `wss://${host}` : undefined
+    return voice.token(room.code, { uid, seat: seat.seat, nickname: seat.nickname }, publicUrl)
   })
 }

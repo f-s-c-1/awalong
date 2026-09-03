@@ -1,21 +1,23 @@
 {
 	# 80 端口被其他项目占用：不做 HTTP 跳转，证书走 TLS-ALPN-01
 	auto_https disable_redirects
+	# HTTP 站点（供 Cloudflare Tunnel 回源）监听 8079
 	http_port 8079
 }
 
-{$SITE_HOST} {
+# 直连域名（自签 Let's Encrypt）与隧道域名（Cloudflare 终止 TLS，回源走 HTTP）共用一套路由
+{$SITE_HOST}, http://{$TUNNEL_HOST} {
 	encode gzip
 
 	# 游戏服务端 REST / WebSocket
 	handle /api/* {
-		reverse_proxy 127.0.0.1:3000
+		reverse_proxy 127.0.0.1:3210
 	}
 	handle /ws* {
-		reverse_proxy 127.0.0.1:3000
+		reverse_proxy 127.0.0.1:3210
 	}
 
-	# LiveKit 信令（客户端 LIVEKIT_URL = wss://{$SITE_HOST}）
+	# LiveKit 信令（客户端 LIVEKIT_URL 跟随访问域名）
 	handle /rtc* {
 		reverse_proxy 127.0.0.1:7880
 	}

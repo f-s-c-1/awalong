@@ -15,6 +15,8 @@ export const config = {
     url: process.env.LIVEKIT_URL ?? '',
     /** 服务端调用 RoomService 的内网地址（默认由 url 推导） */
     apiUrl: process.env.LIVEKIT_API_URL ?? '',
+    /** 多域名部署：信令地址跟随请求域名 */
+    followHost: process.env.LIVEKIT_FOLLOW_HOST === '1',
     apiKey: process.env.LIVEKIT_API_KEY ?? '',
     apiSecret: process.env.LIVEKIT_API_SECRET ?? '',
   },

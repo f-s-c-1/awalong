@@ -7,9 +7,36 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>阿瓦隆</title>
+    <meta name="apple-mobile-web-app-title" content="阿瓦隆" />
+    <meta name="application-name" content="阿瓦隆" />
+    <meta name="description" content="5-10 人在线阿瓦隆：实时语音、圆桌表决、刺客终局。分享链接即可开局，无需下载。" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- 微信以外的平台（QQ / Telegram / iMessage / X）读取 Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="阿瓦隆" />
+    <meta property="og:title" content="阿瓦隆 · 圆桌之上，忠诚与背叛共存" />
+    <meta property="og:description" content="5-10 人在线阿瓦隆：实时语音、圆桌表决、刺客终局。分享链接即可开局，无需下载。" />
+    <meta property="og:image" content="/og-cover.png" />
+    <meta property="og:image:width" content="600" />
+    <meta property="og:image:height" content="600" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="阿瓦隆 · 圆桌之上，忠诚与背叛共存" />
+    <meta name="twitter:image" content="/og-cover.png" />
+    <meta itemprop="name" content="阿瓦隆" />
+    <meta itemprop="description" content="5-10 人在线阿瓦隆：实时语音、圆桌表决、刺客终局。" />
+    <meta itemprop="image" content="/share-cover.png" />
+
+    <title>阿瓦隆 · 圆桌之上，忠诚与背叛共存</title>
   </head>
   <body>
+    <!-- 微信聊天/朋友圈分享卡片取页面首张 ≥300×300 的图片作为缩略图，必须放在 body 最前 -->
+    <img src="/share-cover.png" alt="" width="300" height="300" style="position:absolute;left:-9999px;top:0;width:300px;height:300px" aria-hidden="true" />
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

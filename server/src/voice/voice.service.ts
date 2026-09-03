@@ -14,14 +14,18 @@ export interface VoiceParticipant {
  */
 export class VoiceService {
   readonly enabled: boolean
+  /** 信令地址是否跟随请求域名（LIVEKIT_FOLLOW_HOST=1） */
+  readonly followHost: boolean
   private client: RoomServiceClient | null = null
 
   constructor(private readonly cfg = config.livekit) {
     this.enabled = Boolean(cfg.url && cfg.apiKey && cfg.apiSecret)
+    this.followHost = cfg.followHost
     if (this.enabled) this.client = new RoomServiceClient(cfg.apiUrl || httpUrl(cfg.url), cfg.apiKey, cfg.apiSecret)
   }
 
-  async token(roomCode: string, participant: VoiceParticipant): Promise<{ url: string; token: string }> {
+  /** publicUrl：按请求域名生成的 wss 地址（同一反代下多域名共用），缺省用配置 */
+  async token(roomCode: string, participant: VoiceParticipant, publicUrl?: string): Promise<{ url: string; token: string }> {
     if (!this.enabled) throw new Error('VOICE_NOT_CONFIGURED')
     const at = new AccessToken(this.cfg.apiKey, this.cfg.apiSecret, {
       identity: participant.uid,
@@ -30,7 +34,7 @@ export class VoiceService {
       ttl: '2h',
     })
     at.addGrant({ roomJoin: true, room: roomCode, canPublish: true, canSubscribe: true, canPublishData: false })
-    return { url: this.cfg.url, token: await at.toJwt() }
+    return { url: publicUrl ?? this.cfg.url, token: await at.toJwt() }
   }
 
   /** 按阶段策略调整每个参与者的发布/订阅权限与静音 */
