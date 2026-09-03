@@ -1,0 +1,73 @@
+/* 设计令牌：与 docs/05-UI交互设计 视觉规范一致。设计稿 390px 基准，1rem = 10px @390 */
+:root {
+  --bg: #141019;
+  --surface: #1F1A2B;
+  --gold: #C9A227;
+  --gold-hover: #E0BC4A;
+  --gold-press: #B8931F;
+  --gold-line: rgba(201, 162, 39, 0.45);
+  --ink: #1A1408;
+  --blue: #4C8DFF;
+  --red: #D64545;
+  --text: #EDE8F2;
+  --muted: #9B93AB;
+  --small: #948AA6;
+  --border: #5C5175;
+  --line: #3A3150;
+  --dim: #4A3F5C;
+
+  --font-sans: system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  --font-serif: 'Noto Serif SC', 'STSong', 'SimSun', serif;
+  --font-latin: 'Cinzel', 'Times New Roman', serif;
+  --font-mono: 'Courier New', ui-monospace, Menlo, monospace;
+
+  /* 刘海屏安全区 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  --shadow-gold: 0 2px 8px rgba(201, 162, 39, 0.25);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --page-max: 480px;
+
+  color-scheme: dark;
+}
+
+html {
+  font-size: calc(100vw / 39);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--bg);
+}
+
+@media (min-width: 480px) {
+  html {
+    font-size: 12.3px;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 1.4rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* 标题、角色名、阶段名使用衬线；字体文件需自托管（见 README） */
+.serif {
+  font-family: var(--font-serif);
+}
+
+.latin {
+  font-family: var(--font-latin);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

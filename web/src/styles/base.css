@@ -1,0 +1,177 @@
+/* 基础样式：重置、页面容器、按钮三态、卡片、标签 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+a {
+  color: var(--gold);
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 页面容器：竖屏单列，最大 480px 居中，含安全区 */
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--page-max);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: calc(1.4rem + var(--safe-top)) 2rem calc(2.4rem + var(--safe-bottom));
+  background: var(--bg);
+}
+
+/* 按钮三态 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 5.2rem;
+  padding: 0 1.6rem;
+  border-radius: 0.8rem;
+  font-size: 1.7rem;
+  letter-spacing: 0.4rem;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, opacity 200ms ease;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: var(--shadow-gold);
+}
+
+.btn-primary:active {
+  background: var(--gold-press);
+}
+
+.btn-secondary {
+  border: 1px solid var(--gold-line);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.btn-secondary:active {
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.btn-disabled,
+.btn:disabled {
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  border: 1px solid var(--line);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn.is-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* 图标圆钮（顶部工具） */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.4rem;
+  height: 4.4rem;
+  border-radius: 50%;
+  color: var(--muted);
+  transition: color 200ms ease, background-color 200ms ease;
+}
+
+.icon-btn:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1.2rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  font-size: 1.2rem;
+  letter-spacing: 0.1rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 400;
+  letter-spacing: 0.3rem;
+  color: var(--small);
+}
+
+.error-text {
+  margin: 0;
+  color: var(--red);
+  font-size: 1.3rem;
+  line-height: 1.6;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 尊重系统减少动效设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
