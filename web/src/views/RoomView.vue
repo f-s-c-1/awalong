@@ -4,12 +4,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { RoleId } from '@awalong/shared'
 import SeatRing from '@/components/SeatRing.vue'
+import VoiceBar from '@/components/VoiceBar.vue'
 import { api, ApiError } from '@/services/api'
 import { ws } from '@/services/ws'
 import { useGameStore } from '@/stores/game'
 import { useMarksStore } from '@/stores/marks'
 import { useRoomStore } from '@/stores/room'
 import { useUserStore } from '@/stores/user'
+import { useVoiceStore } from '@/stores/voice'
 import type { RingSeat } from '@/types/ui'
 import { copyText } from '@/utils/clipboard'
 import { roleName, roleSide } from '@/utils/roles'
@@ -21,6 +23,7 @@ const room = useRoomStore()
 const game = useGameStore()
 const user = useUserStore()
 const marks = useMarksStore()
+const voice = useVoiceStore()
 
 const error = ref('')
 const copied = ref(false)
@@ -41,6 +44,7 @@ const total = computed(() => Math.max(room.playerCount, room.seatedCount, 1))
 const inLobby = computed(() => room.synced && room.status === 'LOBBY')
 
 const ringSeats = computed<RingSeat[]>(() => {
+  const speaking = new Set(voice.speakingSeats)
   const list: RingSeat[] = room.seats.map((s) => ({
     seat: s.seat,
     nickname: s.nickname,
@@ -48,6 +52,7 @@ const ringSeats = computed<RingSeat[]>(() => {
     online: s.online,
     ready: s.ready,
     mark: marks.get(s.seat)?.mark,
+    speaking: speaking.has(s.seat),
   }))
   const taken = new Set(list.map((s) => s.seat))
   for (let seat = 1; seat <= total.value; seat += 1) {
@@ -171,6 +176,7 @@ async function invite(): Promise<void> {
 }
 
 function leave(): void {
+  void voice.leave()
   ws.send({ type: 'room.leave' })
   ws.disconnect()
   room.reset()
@@ -237,6 +243,11 @@ onBeforeUnmount(() => {
           <div class="room__center-sub">{{ centerHint }}</div>
         </template>
       </SeatRing>
+
+      <section v-if="mySeat !== undefined" class="room__voice" aria-label="语音">
+        <VoiceBar />
+        <span class="room__voice-tip">进入房间即可语音，开局后按阶段自动静音</span>
+      </section>
 
       <section class="room__roles" aria-labelledby="roles-title">
         <h2 id="roles-title" class="section-title">本局角色</h2>
@@ -359,6 +370,18 @@ onBeforeUnmount(() => {
 .room__center-sub {
   font-size: 1.1rem;
   color: var(--muted);
+}
+
+.room__voice {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+
+.room__voice-tip {
+  font-size: 1.1rem;
+  color: var(--small);
 }
 
 .room__roles {

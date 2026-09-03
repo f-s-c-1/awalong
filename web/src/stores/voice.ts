@@ -6,12 +6,14 @@ import { ApiError, api } from '@/services/api'
 import * as sfx from '@/services/sfx'
 import { VoiceClient, isVoiceSupported, type VoiceState } from '@/services/voice'
 import { useGameStore } from '@/stores/game'
+import { useRoomStore } from '@/stores/room'
 import { useUserStore } from '@/stores/user'
 
 export type VoiceAvailability = 'unknown' | 'ready' | 'unsupported' | 'unavailable'
 
 export const useVoiceStore = defineStore('voice', () => {
   const game = useGameStore()
+  const room = useRoomStore()
   const user = useUserStore()
 
   const availability = ref<VoiceAvailability>(isVoiceSupported() ? 'unknown' : 'unsupported')
@@ -38,7 +40,8 @@ export const useVoiceStore = defineStore('voice', () => {
   })
 
   const connected = computed(() => state.value === 'connected')
-  const mySeat = computed(() => game.secret?.seat ?? game.seatOf(user.uid))
+  /** 对局中取游戏态座位，大厅阶段取房间座位 */
+  const mySeat = computed(() => game.secret?.seat ?? game.seatOf(user.uid) ?? room.mySeat ?? undefined)
 
   /** 当前阶段策略下本人能否发言 */
   const canPublish = computed(() => {
@@ -59,7 +62,7 @@ export const useVoiceStore = defineStore('voice', () => {
   const speakingSeats = computed(() => {
     const seats: number[] = []
     for (const uid of speakingUids.value) {
-      const seat = game.seatOf(uid)
+      const seat = game.seatOf(uid) ?? room.seatOf(uid)
       if (seat !== undefined) seats.push(seat)
     }
     return seats
@@ -114,11 +117,17 @@ export const useVoiceStore = defineStore('voice', () => {
     else if (allowed && wantMic.value && !micEnabled.value) void client.enableMic(true)
   })
 
-  // 回到大厅（再来一局 / 作废 / 离开房间）时断开语音，下一局重新点击加入
+  // 语音跟随房间：离开房间 / 房间解散时断开；大厅与对局之间保持连接
   watch(
-    () => game.phase,
-    (phase) => {
-      if ((phase === 'LOBBY' || phase === null) && connected.value) void leave()
+    () => room.code,
+    (code) => {
+      if (!code && connected.value) void leave()
+    },
+  )
+  watch(
+    () => room.closedReason,
+    (reason) => {
+      if (reason && connected.value) void leave()
     },
   )
 
