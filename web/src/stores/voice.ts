@@ -68,20 +68,36 @@ export const useVoiceStore = defineStore('voice', () => {
     return seats
   })
 
-  /** 在用户点击回调里调用：拿令牌、连房、开麦 */
+  /** 连接过程中的阶段提示（连接中按钮旁显示） */
+  const progress = ref('')
+
+  /** 在用户点击回调里调用：拿令牌、连房、开麦。点击即进入连接态，避免等待凭证期间无反馈 */
   async function join(code: string): Promise<void> {
-    if (availability.value === 'unsupported') return
+    if (availability.value === 'unsupported' || state.value === 'connecting') return
     sfx.unlock()
+    state.value = 'connecting'
+    message.value = ''
+    progress.value = '获取语音凭证…'
+    const startedAt = Date.now()
     try {
       const info = await api.voiceToken()
       roomCode.value = code
+      progress.value = '连接语音服务器…'
       await client.connect(info.url, info.token)
       if (client.connected) {
         availability.value = 'ready'
         wantMic.value = true
+        progress.value = '开启麦克风…'
         if (canPublish.value) await client.enableMic(true)
+        progress.value = ''
+        console.info(`[voice] 连接用时 ${Date.now() - startedAt}ms`)
+      } else {
+        // connect() 内部已把 state 置为 error / unsupported 并写入 message
+        progress.value = ''
+        availability.value = 'unavailable'
       }
     } catch (err) {
+      progress.value = ''
       if (err instanceof ApiError && (err.status === 501 || err.code === 'VOICE_NOT_CONFIGURED')) {
         availability.value = 'unavailable'
         message.value = '本服务器尚未开启实时语音，可用快捷短语交流'
@@ -89,7 +105,16 @@ export const useVoiceStore = defineStore('voice', () => {
         availability.value = 'unavailable'
         message.value = err instanceof Error ? err.message : '语音连接失败'
       }
+      state.value = 'error'
     }
+  }
+
+  /** 连接失败后允许再试一次 */
+  function retry(code: string): Promise<void> {
+    availability.value = isVoiceSupported() ? 'unknown' : 'unsupported'
+    state.value = 'idle'
+    message.value = ''
+    return join(code)
   }
 
   async function toggleMic(): Promise<void> {
@@ -149,7 +174,9 @@ export const useVoiceStore = defineStore('voice', () => {
     speakingUids,
     speakingSeats,
     roomCode,
+    progress,
     join,
+    retry,
     toggleMic,
     leave,
   }

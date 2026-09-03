@@ -9,6 +9,7 @@ import SettingsSheet from '@/components/SettingsSheet.vue'
 import VoiceBar from '@/components/VoiceBar.vue'
 import { api, ApiError } from '@/services/api'
 import { inviteText, renderInviteCard } from '@/services/inviteCard'
+import { preloadVoice } from '@/services/voice'
 import { ws } from '@/services/ws'
 import { useGameStore } from '@/stores/game'
 import { useMarksStore } from '@/stores/marks'
@@ -255,6 +256,8 @@ onMounted(() => {
     now.value = Date.now()
   }, 500)
   void enter()
+  // 进房后空闲时预取语音 SDK，点击开启语音时不再等下载
+  preloadVoice()
 })
 
 onBeforeUnmount(() => {

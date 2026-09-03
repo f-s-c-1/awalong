@@ -30,7 +30,7 @@ services:
     mem_limit: 200m
 
   livekit:
-    image: livekit/livekit-server:v1.8
+    image: livekit/livekit-server:latest
     container_name: awalong-livekit
     restart: unless-stopped
     network_mode: host

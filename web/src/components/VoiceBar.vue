@@ -43,12 +43,21 @@ const disabled = computed(() =>
   mode.value === 'connecting' || mode.value === 'muted' || mode.value === 'unsupported' || mode.value === 'unavailable',
 )
 
+const disabledReason = computed(() => {
+  if (mode.value === 'unavailable' || mode.value === 'unsupported') return voice.message || label.value
+  return ''
+})
+
 async function onClick(): Promise<void> {
   if (mode.value === 'join') {
     if (room.code) await voice.join(room.code)
     return
   }
   if (mode.value === 'on' || mode.value === 'off') await voice.toggleMic()
+}
+
+async function onRetry(): Promise<void> {
+  if (room.code) await voice.retry(room.code)
 }
 </script>
 
@@ -63,6 +72,11 @@ async function onClick(): Promise<void> {
       </svg>
     </button>
     <span v-if="mode === 'join'" class="vb__hint">点击开启语音</span>
+    <span v-else-if="mode === 'connecting'" class="vb__hint vb__hint--busy" aria-live="polite">{{ voice.progress || '连接中…' }}</span>
+    <span v-else-if="mode === 'unavailable'" class="vb__hint vb__hint--error" role="alert">
+      {{ disabledReason }}
+      <button type="button" class="vb__retry" @click="onRetry">重试</button>
+    </span>
     <span v-else-if="!voice.canSubscribe && voice.connected" class="vb__hint">本阶段无法收听</span>
   </div>
 </template>
@@ -128,5 +142,48 @@ async function onClick(): Promise<void> {
   letter-spacing: 0.1rem;
   white-space: nowrap;
   color: var(--small);
+}
+
+.vb__hint--busy {
+  color: var(--gold);
+  animation: vb-pulse 1s ease-in-out infinite;
+}
+
+.vb__hint--error {
+  white-space: normal;
+  color: var(--red);
+}
+
+.vb__retry {
+  margin-left: 0.6rem;
+  padding: 0.2rem 0.8rem;
+  border: 1px solid var(--gold-line);
+  border-radius: 0.4rem;
+  font-size: 1.1rem;
+  color: var(--gold);
+}
+
+/* 连接中：按钮呼吸 */
+.vb--connecting .vb__btn {
+  border-color: var(--gold);
+  color: var(--gold);
+  animation: vb-pulse 1s ease-in-out infinite;
+}
+
+@keyframes vb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vb__hint--busy,
+  .vb--connecting .vb__btn {
+    animation: none;
+  }
 }
 </style>

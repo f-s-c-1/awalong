@@ -6,6 +6,8 @@ rtc:
   port_range_start: 50000
   port_range_end: 50200
   use_external_ip: true
+  # 明确公网地址，避免把 docker 网桥地址一并下发给客户端
+  node_ip: 107.173.49.32
 room:
   auto_create: true
   empty_timeout: 300

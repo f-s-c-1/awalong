@@ -9,6 +9,21 @@ export interface VoiceEvents {
   onMicChanged?: (enabled: boolean) => void
 }
 
+let preloaded: Promise<unknown> | null = null
+
+/** 进房后空闲时预取语音 SDK（约 150KB gzip），避免点击开启语音时才下载 */
+export function preloadVoice(): void {
+  if (preloaded || !isVoiceSupported()) return
+  const run = (): void => {
+    preloaded = import('livekit-client').catch(() => {
+      preloaded = null
+    })
+  }
+  const idle = (window as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback
+  if (idle) idle(run, { timeout: 3000 })
+  else window.setTimeout(run, 500)
+}
+
 /** 浏览器是否具备 WebRTC 与麦克风采集能力 */
 export function isVoiceSupported(): boolean {
   return (
