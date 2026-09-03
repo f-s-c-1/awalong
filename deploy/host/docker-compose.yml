@@ -1,0 +1,45 @@
+# 单机、无域名场景：全部 host 网络，Caddy 只监听 443（80 被其他项目占用，用 TLS-ALPN 签证书）
+# 目录约定：/opt/awalong/{web,server,caddy,livekit.yaml,.env}
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: awalong-caddy
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web:/srv/web:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  server:
+    image: node:20-alpine
+    container_name: awalong-server
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /app
+    command: ["node", "main.js"]
+    env_file: .env
+    environment:
+      HOST: 127.0.0.1
+      PORT: "3000"
+      NODE_ENV: production
+    volumes:
+      - ./server:/app:ro
+    mem_limit: 200m
+
+  livekit:
+    image: livekit/livekit-server:v1.8
+    container_name: awalong-livekit
+    restart: unless-stopped
+    network_mode: host
+    command: --config /etc/livekit.yaml
+    env_file: .env
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    mem_limit: 250m
+
+volumes:
+  caddy-data:
+  caddy-config:

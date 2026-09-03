@@ -11,7 +11,10 @@ export const config = {
   idleRoomMs: 10 * 60_000,
   phraseCooldownMs: 5_000,
   livekit: {
+    /** 下发给客户端的公网地址（wss://域名） */
     url: process.env.LIVEKIT_URL ?? '',
+    /** 服务端调用 RoomService 的内网地址（默认由 url 推导） */
+    apiUrl: process.env.LIVEKIT_API_URL ?? '',
     apiKey: process.env.LIVEKIT_API_KEY ?? '',
     apiSecret: process.env.LIVEKIT_API_SECRET ?? '',
   },

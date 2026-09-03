@@ -1,0 +1,31 @@
+{
+	# 80 端口被其他项目占用：不做 HTTP 跳转，证书走 TLS-ALPN-01
+	auto_https disable_redirects
+	http_port 8079
+}
+
+{$SITE_HOST} {
+	encode gzip
+
+	# 游戏服务端 REST / WebSocket
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+	handle /ws* {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	# LiveKit 信令（客户端 LIVEKIT_URL = wss://{$SITE_HOST}）
+	handle /rtc* {
+		reverse_proxy 127.0.0.1:7880
+	}
+
+	# 单页应用
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+	}
+}

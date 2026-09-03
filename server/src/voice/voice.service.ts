@@ -18,7 +18,7 @@ export class VoiceService {
 
   constructor(private readonly cfg = config.livekit) {
     this.enabled = Boolean(cfg.url && cfg.apiKey && cfg.apiSecret)
-    if (this.enabled) this.client = new RoomServiceClient(httpUrl(cfg.url), cfg.apiKey, cfg.apiSecret)
+    if (this.enabled) this.client = new RoomServiceClient(cfg.apiUrl || httpUrl(cfg.url), cfg.apiKey, cfg.apiSecret)
   }
 
   async token(roomCode: string, participant: VoiceParticipant): Promise<{ url: string; token: string }> {
