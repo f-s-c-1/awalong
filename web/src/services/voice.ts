@@ -1,4 +1,4 @@
-import { Room, RoomEvent, Track, type RemoteParticipant, type RemoteTrack } from 'livekit-client'
+import type { RemoteParticipant, RemoteTrack, Room } from 'livekit-client'
 
 export type VoiceState = 'idle' | 'connecting' | 'connected' | 'unsupported' | 'error'
 
@@ -20,6 +20,7 @@ export function isVoiceSupported(): boolean {
 
 /**
  * LiveKit 语音客户端封装：纯音频房间。
+ * livekit-client 体积较大（约 500KB），仅在用户点击开启语音时动态加载。
  * 必须在用户手势回调中调用 connect()，否则 iOS 微信不会授予麦克风与自动播放。
  * 权限（能否发布/订阅）由服务端令牌与阶段策略控制，这里只负责连接与播放。
  */
@@ -45,18 +46,29 @@ export class VoiceClient {
     }
     if (this.room) await this.disconnect()
     this.setState('connecting')
-    const room = new Room({ adaptiveStream: false, dynacast: false, audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true } })
+    let lk: typeof import('livekit-client')
+    try {
+      lk = await import('livekit-client')
+    } catch {
+      this.setState('error', '语音模块加载失败，请检查网络后重试')
+      return
+    }
+    const room = new lk.Room({
+      adaptiveStream: false,
+      dynacast: false,
+      audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true },
+    })
     this.room = room
     room
-      .on(RoomEvent.TrackSubscribed, (track) => this.attach(track))
-      .on(RoomEvent.TrackUnsubscribed, (track) => track.detach().forEach((el) => el.remove()))
-      .on(RoomEvent.ActiveSpeakersChanged, (speakers) => this.events.onSpeakers?.(speakers.map((p) => p.identity)))
-      .on(RoomEvent.ParticipantDisconnected, (p: RemoteParticipant) => this.detachParticipant(p))
-      .on(RoomEvent.Disconnected, () => this.setState('idle'))
-      .on(RoomEvent.Reconnecting, () => this.setState('connecting'))
-      .on(RoomEvent.Reconnected, () => this.setState('connected'))
-      .on(RoomEvent.LocalTrackPublished, () => this.events.onMicChanged?.(this.micEnabled))
-      .on(RoomEvent.LocalTrackUnpublished, () => this.events.onMicChanged?.(this.micEnabled))
+      .on(lk.RoomEvent.TrackSubscribed, (track: RemoteTrack) => this.attach(track, lk.Track.Kind.Audio))
+      .on(lk.RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => track.detach().forEach((el) => el.remove()))
+      .on(lk.RoomEvent.ActiveSpeakersChanged, (speakers) => this.events.onSpeakers?.(speakers.map((p) => p.identity)))
+      .on(lk.RoomEvent.ParticipantDisconnected, (p: RemoteParticipant) => this.detachParticipant(p))
+      .on(lk.RoomEvent.Disconnected, () => this.setState('idle'))
+      .on(lk.RoomEvent.Reconnecting, () => this.setState('connecting'))
+      .on(lk.RoomEvent.Reconnected, () => this.setState('connected'))
+      .on(lk.RoomEvent.LocalTrackPublished, () => this.events.onMicChanged?.(this.micEnabled))
+      .on(lk.RoomEvent.LocalTrackUnpublished, () => this.events.onMicChanged?.(this.micEnabled))
     try {
       await room.connect(url, token)
       await room.startAudio()
@@ -91,8 +103,8 @@ export class VoiceClient {
     this.setState('idle')
   }
 
-  private attach(track: RemoteTrack): void {
-    if (track.kind !== Track.Kind.Audio) return
+  private attach(track: RemoteTrack, audioKind: string): void {
+    if (track.kind !== audioKind) return
     const el = track.attach()
     el.setAttribute('data-voice', '1')
     this.getContainer().appendChild(el)

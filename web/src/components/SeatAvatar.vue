@@ -25,6 +25,8 @@ const props = withDefaults(
     ready?: boolean
     mark?: MarkKind
     showName?: boolean
+    /** 正在说话：右侧音浪 */
+    speaking?: boolean
   }>(),
   {
     nickname: '',
@@ -37,6 +39,7 @@ const props = withDefaults(
     ready: false,
     mark: undefined,
     showName: true,
+    speaking: false,
   },
 )
 
@@ -112,6 +115,12 @@ const displayName = computed(() => {
       </slot>
 
       <slot name="bottom-right" />
+
+      <svg v-if="speaking && !empty" class="sa__wave" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <circle cx="2.5" cy="7" r="1.5" fill="#C9A227" />
+        <path d="M6 3.5a5 5 0 0 1 0 7" stroke="#C9A227" stroke-width="1.4" />
+        <path d="M9 1.5a8 8 0 0 1 0 11" stroke="#C9A227" stroke-width="1.4" opacity="0.6" />
+      </svg>
     </div>
 
     <span v-if="showName" class="sa__name" :class="{ 'sa__name--me': me }">{{ displayName }}</span>
@@ -272,6 +281,31 @@ const displayName = computed(() => {
   font-size: 0.9rem;
   line-height: 1;
   color: var(--muted);
+}
+
+.sa__wave {
+  position: absolute;
+  right: -1.6rem;
+  top: 1.6rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  animation: sa-wave 900ms ease-in-out infinite;
+}
+
+@keyframes sa-wave {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa__wave {
+    animation: none;
+  }
 }
 
 .sa__name {

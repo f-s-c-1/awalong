@@ -20,4 +20,6 @@ export interface RingSeat {
   voted?: boolean
   /** 本机私人标记 */
   mark?: MarkKind
+  /** 正在说话（语音音浪） */
+  speaking?: boolean
 }

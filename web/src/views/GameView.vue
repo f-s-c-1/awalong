@@ -5,11 +5,13 @@ import { useRouter } from 'vue-router'
 import PhaseBar from '@/components/PhaseBar.vue'
 import QuestTrack from '@/components/QuestTrack.vue'
 import SeatRing from '@/components/SeatRing.vue'
+import VoiceBar from '@/components/VoiceBar.vue'
 import { ws } from '@/services/ws'
 import { useGameStore } from '@/stores/game'
 import { useMarksStore } from '@/stores/marks'
 import { useRoomStore } from '@/stores/room'
 import { useUserStore } from '@/stores/user'
+import { useVoiceStore } from '@/stores/voice'
 import type { RingSeat } from '@/types/ui'
 import { twoFailsIndexFor } from '@/utils/rules'
 
@@ -18,6 +20,7 @@ const room = useRoomStore()
 const game = useGameStore()
 const user = useUserStore()
 const marks = useMarksStore()
+const voice = useVoiceStore()
 
 const state = computed(() => game.state)
 const mySeat = computed(() => game.secret?.seat ?? game.seatOf(user.uid))
@@ -38,6 +41,7 @@ const ringSeats = computed<RingSeat[]>(() => {
   if (!s) return []
   const team = new Set(s.currentTeam)
   const voted = new Set(s.teamVotedSeats)
+  const speaking = new Set(voice.speakingSeats)
   return s.players.map((p) => ({
     seat: p.seat,
     nickname: p.nickname,
@@ -47,6 +51,7 @@ const ringSeats = computed<RingSeat[]>(() => {
     selected: team.has(p.seat),
     voted: voted.has(p.seat),
     mark: marks.get(p.seat)?.mark,
+    speaking: speaking.has(p.seat),
   }))
 })
 
@@ -176,9 +181,12 @@ watch(
 <template>
   <main class="page game">
     <header class="game__top">
-      <span class="game__room">房间 {{ room.code }}</span>
-      <span v-if="mySeat !== undefined" class="game__me">{{ mySeat }} 号 · {{ user.nickname }}</span>
-      <span v-else class="game__me">旁观</span>
+      <div class="game__ident">
+        <span class="game__room">房间 {{ room.code }}</span>
+        <span v-if="mySeat !== undefined" class="game__me">{{ mySeat }} 号 · {{ user.nickname }}</span>
+        <span v-else class="game__me">旁观</span>
+      </div>
+      <VoiceBar v-if="mySeat !== undefined" />
     </header>
 
     <template v-if="state">
@@ -220,6 +228,12 @@ watch(
   align-items: center;
   justify-content: space-between;
   min-height: 3.2rem;
+}
+
+.game__ident {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .game__room,

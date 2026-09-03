@@ -61,6 +61,7 @@ function describe(s: RingSeat): string {
   if (s.voted) parts.push('已投票')
   if (s.ready) parts.push('已准备')
   if (!s.online) parts.push('已断线')
+  if (s.speaking) parts.push('正在说话')
   return parts.join('，')
 }
 
@@ -153,6 +154,7 @@ onBeforeUnmount(clearPress)
             :voted="s.voted"
             :ready="s.ready"
             :mark="s.mark"
+            :speaking="s.speaking"
           />
         </button>
       </li>
