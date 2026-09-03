@@ -272,6 +272,7 @@ function back(): void {
   .avatars__grid {
     grid-template-columns: repeat(4, 7.2rem);
     gap: 1.6rem;
+    justify-content: center;
   }
 
   .avatars__icon {
@@ -281,6 +282,19 @@ function back(): void {
 
   .field__hint {
     font-size: 1.2rem;
+  }
+}
+
+/* 桌面 ≥1024px：头像单格放大铺满内容列（仍保持 4 列，方向键导航逻辑不变） */
+@media (min-width: 1024px) {
+  .avatars__grid {
+    grid-template-columns: repeat(4, 9.6rem);
+    gap: 2rem 3.2rem;
+  }
+
+  .avatars__icon {
+    width: 4.4rem;
+    height: 4.4rem;
   }
 }
 </style>
