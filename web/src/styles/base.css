@@ -164,6 +164,52 @@ a {
   border: 0;
 }
 
+/* 平板 / PC：容器加宽、页面背景交给 body 绘制（带与封面一致的微弱金色光晕，避免大屏死黑） */
+@media (min-width: 768px) {
+  body {
+    background:
+      radial-gradient(
+        ellipse 96rem 60rem at 50% 10rem,
+        rgba(201, 162, 39, 0.09) 0%,
+        rgba(201, 162, 39, 0.03) 45%,
+        rgba(20, 16, 25, 0) 72%
+      )
+      no-repeat,
+      var(--bg);
+  }
+
+  .page {
+    padding: calc(3.2rem + var(--safe-top)) 3.2rem calc(4rem + var(--safe-bottom));
+    background: transparent;
+  }
+
+  /* 内容页（结算 / 规则 / 引导 / 加入）：居中单列 56rem */
+  .page.page--narrow {
+    max-width: var(--page-narrow);
+  }
+}
+
+/* 鼠标悬停反馈：仅 hover 设备生效，触屏不受影响 */
+@media (hover: hover) {
+  .btn,
+  .icon-btn {
+    transition-duration: 150ms;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--gold-hover);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--gold);
+  }
+
+  .icon-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
 /* 尊重系统减少动效设置 */
 @media (prefers-reduced-motion: reduce) {
   *,

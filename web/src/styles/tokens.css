@@ -29,11 +29,24 @@
 
   --shadow-gold: 0 2px 8px rgba(201, 162, 39, 0.25);
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  /* 页面容器宽度：手机一列 480px；内容页（结算/规则/引导/加入）与主容器同宽 */
   --page-max: 480px;
+  --page-narrow: 480px;
+  /* 大屏座位环直径（≥768px 由大厅 / 桌面覆写 SeatRing 的 --seat-ring-w） */
+  --ring-lg: 56rem;
+  /* 双栏布局列间距 */
+  --col-gap: 3.2rem;
 
   color-scheme: dark;
 }
 
+/*
+ * 断点体系（全站统一，新增规则只允许写在 min-width 递增的媒体查询内，手机 <768px 的表现不受影响）：
+ *   手机   <768px ：1rem = 100vw / 39，≥480px 封顶 12.3px，内容 480px 单列（主战场，保持不变）
+ *   平板/PC ≥768px ：1rem = 10px 固定，.page 72rem，内容页 56rem，body 叠加与封面一致的金色光晕
+ *   桌面   ≥1024px：.page 100rem，大厅 / 桌面切换为「座位环 56rem + 侧栏」双栏
+ */
 html {
   font-size: calc(100vw / 39);
   -webkit-text-size-adjust: 100%;
@@ -44,6 +57,23 @@ html {
 @media (min-width: 480px) {
   html {
     font-size: 12.3px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --page-max: 72rem;
+    --page-narrow: 56rem;
+  }
+
+  html {
+    font-size: 10px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-max: 100rem;
   }
 }
 

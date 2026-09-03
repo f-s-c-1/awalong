@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // 输入房间码：6 位数字框 + 自绘数字键盘，支持粘贴识别与物理键盘；查询房间无需登录
+// PC（鼠标设备）隐藏数字键盘，由视觉隐藏的 <input> 承接键盘 / 输入法输入，数字框只做展示
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ApiError } from '@/services/api'
@@ -11,6 +12,9 @@ const router = useRouter()
 const digits = ref('')
 const checking = ref(false)
 const error = ref('')
+/** 隐藏输入框；仅在鼠标设备上自动聚焦，避免手机弹出系统键盘改变现有体验 */
+const codeInput = ref<HTMLInputElement | null>(null)
+const inputFocused = ref(false)
 
 const slots = Array.from({ length: CODE_LENGTH }, (_, i) => i)
 const keys: readonly string[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'del']
@@ -108,6 +112,33 @@ function onPaste(ev: ClipboardEvent): void {
   if (applyPasted(text)) ev.preventDefault()
 }
 
+/**
+ * 隐藏输入框的 input 事件：物理键盘按键已由 window keydown 处理并阻止默认行为，
+ * 这里只兜底输入法 / 虚拟键盘等不产生可识别 keydown 的输入路径，并把框内容归一化为纯数字
+ */
+function onInput(ev: Event): void {
+  const el = ev.target as HTMLInputElement
+  if (checking.value) {
+    el.value = digits.value
+    return
+  }
+  const clean = el.value.replace(/\D/g, '').slice(0, CODE_LENGTH)
+  if (clean !== digits.value) {
+    error.value = ''
+    digits.value = clean
+    if (clean.length === CODE_LENGTH) void submit()
+  }
+  if (el.value !== clean) el.value = clean
+}
+
+function isFinePointer(): boolean {
+  return window.matchMedia('(pointer: fine)').matches
+}
+
+function focusInput(): void {
+  if (isFinePointer()) codeInput.value?.focus({ preventScroll: true })
+}
+
 function back(): void {
   if (window.history.length > 1) router.back()
   else void router.replace('/')
@@ -116,6 +147,7 @@ function back(): void {
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   document.addEventListener('paste', onPaste)
+  focusInput()
 })
 
 onBeforeUnmount(() => {
@@ -125,7 +157,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="page join">
+  <main class="page page--narrow join">
     <header class="join__head">
       <button type="button" class="icon-btn" aria-label="返回" @click="back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -137,7 +169,29 @@ onBeforeUnmount(() => {
 
     <p class="join__hint">向房主索要 6 位房间码，或直接打开分享链接</p>
 
-    <div class="join__boxes" role="group" aria-label="房间码">
+    <input
+      ref="codeInput"
+      class="sr-only"
+      type="text"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      pattern="\d*"
+      :maxlength="CODE_LENGTH"
+      :value="digits"
+      :disabled="checking"
+      aria-label="房间码，6 位数字"
+      @input="onInput"
+      @focus="inputFocused = true"
+      @blur="inputFocused = false"
+    />
+
+    <div
+      class="join__boxes"
+      :class="{ 'join__boxes--focus': inputFocused }"
+      role="group"
+      aria-label="房间码"
+      @click="focusInput"
+    >
       <span
         v-for="i in slots"
         :key="i"
@@ -155,6 +209,8 @@ onBeforeUnmount(() => {
     <p v-if="error" class="error-text join__status" role="alert">{{ error }}</p>
     <p v-else-if="checking" class="join__status" aria-live="polite">正在查询房间…</p>
     <p v-else class="join__status join__status--empty" aria-hidden="true"></p>
+
+    <p class="join__kbd-hint">直接用键盘输入房间码，输满 6 位自动查询，回车确认</p>
 
     <div class="keypad" role="group" aria-label="数字键盘">
       <button
@@ -290,5 +346,71 @@ onBeforeUnmount(() => {
 .join__paste:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* 隐藏输入框聚焦时，在当前数字框上显示可见的焦点环（键盘用户可感知） */
+.join__boxes--focus .join__box--active {
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.35);
+}
+
+/* 键盘提示：仅鼠标设备 + 宽屏显示（见下方媒体查询） */
+.join__kbd-hint {
+  display: none;
+  margin: 1.6rem 0 0;
+  text-align: center;
+  font-size: 1.3rem;
+  color: var(--small);
+}
+
+/* 鼠标悬停：键位边框变金、粘贴按钮提亮（触屏不受影响） */
+@media (hover: hover) {
+  .keypad__key {
+    transition-duration: 150ms;
+  }
+
+  .keypad__key:hover:not(:disabled) {
+    border-color: var(--gold);
+  }
+
+  .join__paste:hover:not(:disabled) {
+    color: var(--gold-hover);
+  }
+}
+
+/* 平板 / PC ≥768px：居中 56rem 单列（由 .page--narrow 提供），数字框略放大 */
+@media (min-width: 768px) {
+  .join__title {
+    font-size: 2.4rem;
+  }
+
+  .join__hint {
+    font-size: 1.4rem;
+  }
+
+  .join__boxes {
+    gap: 1.2rem;
+    cursor: text;
+  }
+
+  .join__box {
+    width: 5.2rem;
+    height: 6.4rem;
+    font-size: 3rem;
+  }
+}
+
+/* 鼠标设备 + 宽屏：隐藏自绘数字键盘，提示直接用键盘输入 */
+@media (min-width: 768px) and (pointer: fine) {
+  .keypad {
+    display: none;
+  }
+
+  .join__kbd-hint {
+    display: block;
+  }
+
+  .join__paste {
+    margin-top: 2.4rem;
+  }
 }
 </style>

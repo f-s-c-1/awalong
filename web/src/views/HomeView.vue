@@ -334,4 +334,146 @@ a.home__link:focus-visible {
     margin-top: 2.8rem;
   }
 }
+
+/* 平板 / PC ≥768px：保持竖排，整体居中并放大 1.2 倍；背景交给 body 的光晕 */
+@media (min-width: 768px) {
+  .home {
+    max-width: var(--page-narrow);
+    justify-content: center;
+    padding: calc(4.8rem + var(--safe-top)) 3.2rem calc(4.8rem + var(--safe-bottom));
+    background: transparent;
+  }
+
+  .home__glow {
+    top: 50%;
+    transform: translateY(-62%);
+  }
+
+  .home__rule {
+    width: 19.2rem;
+    height: 1.44rem;
+  }
+
+  .home__emblem {
+    width: 24rem;
+    height: 28.8rem;
+    margin-top: 4.8rem;
+  }
+
+  .home__title {
+    gap: 1.4rem;
+    margin-top: 4.3rem;
+  }
+
+  .home__name {
+    font-size: 7.2rem;
+    letter-spacing: 1.2rem;
+  }
+
+  .home__latin {
+    font-size: 1.7rem;
+    letter-spacing: 1.3rem;
+  }
+
+  .home__tagline {
+    font-size: 1.6rem;
+    letter-spacing: 0.36rem;
+  }
+
+  .home__tags {
+    gap: 1.2rem;
+    margin-top: 5.2rem;
+  }
+
+  .home__tags .chip {
+    padding: 0.7rem 1.7rem;
+    font-size: 1.4rem;
+  }
+
+  .home__actions {
+    max-width: 40rem;
+    gap: 1.4rem;
+    margin-top: 0;
+    padding-top: 4rem;
+  }
+
+  .home__actions .btn {
+    height: 6.2rem;
+    font-size: 2rem;
+  }
+
+  .home__resume,
+  .home__link {
+    font-size: 1.5rem;
+  }
+
+  .home__links {
+    margin-top: 3.2rem;
+  }
+}
+
+/* 桌面 ≥1024px：徽章 28rem、标题 8rem，两个主按钮并排（各 24rem） */
+@media (min-width: 1024px) {
+  .home {
+    max-width: 72rem;
+  }
+
+  .home__glow {
+    width: 56rem;
+    height: 56rem;
+    margin-left: -28rem;
+  }
+
+  .home__emblem {
+    width: 28rem;
+    height: 33.6rem;
+  }
+
+  .home__name {
+    font-size: 8rem;
+    letter-spacing: 1.4rem;
+  }
+
+  .home__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: none;
+    gap: 1.6rem;
+  }
+
+  .home__actions .btn {
+    width: 24rem;
+  }
+
+  .home__resume,
+  .home__error {
+    flex-basis: 100%;
+  }
+}
+
+/* 桌面矮视口（如 1366×768 笔记本减去浏览器栏）：收紧徽章与标题，保证按钮不出首屏 */
+@media (min-width: 1024px) and (max-height: 760px) {
+  .home__emblem {
+    width: 22rem;
+    height: 26.4rem;
+    margin-top: 2.4rem;
+  }
+
+  .home__title {
+    margin-top: 2.8rem;
+  }
+
+  .home__name {
+    font-size: 6.4rem;
+  }
+
+  .home__tags {
+    margin-top: 3.2rem;
+  }
+
+  .home__actions {
+    padding-top: 3.2rem;
+  }
+}
 </style>

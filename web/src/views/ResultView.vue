@@ -67,7 +67,7 @@ watch(
 </script>
 
 <template>
-  <main class="page result">
+  <main class="page page--narrow result">
     <template v-if="summary">
       <header
         class="result__head"
@@ -279,5 +279,26 @@ watch(
   min-height: 4.4rem;
   font-size: 1.3rem;
   letter-spacing: 0.2rem;
+}
+
+/* 平板 / PC ≥768px：居中 56rem 单列（由 .page--narrow 提供），两个底部按钮并排 */
+@media (min-width: 768px) {
+  .result__title {
+    font-size: 3.6rem;
+  }
+
+  .result__role,
+  .result__tag {
+    font-size: 1.3rem;
+  }
+
+  .result__footer {
+    flex-direction: row;
+    gap: 1.6rem;
+  }
+
+  .result__footer .btn {
+    flex: 1;
+  }
 }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 环形座位：角度 = -90° + 360°/n × ((seat - mySeat + n/2) mod n)，让「我」固定在正下方
-// 半径 = min(100vw, 480px) × 42%（纯 CSS 计算，座位只输出单位向量 --dx/--dy）
+// 半径 = 环宽 × 42%（纯 CSS 计算，座位只输出单位向量 --dx/--dy）
+// 环宽默认 min(100vw, 480px)，父级可通过 --seat-ring-w 覆写（中心圆直径同理：--seat-ring-center）
 import { computed, onBeforeUnmount, useSlots } from 'vue'
 import type { RingSeat } from '@/types/ui'
 import SeatAvatar from './SeatAvatar.vue'
@@ -164,7 +165,8 @@ onBeforeUnmount(clearPress)
 
 <style scoped>
 .ring {
-  --ring-w: min(100vw, 480px);
+  /* 尺寸对外暴露：--seat-ring-w（环宽）、--seat-ring-center（中心圆直径），未设置时沿用手机默认值 */
+  --ring-w: var(--seat-ring-w, min(100vw, 480px));
   --r: min(calc(var(--ring-w) * 0.42), 34vh);
   --r: min(calc(var(--ring-w) * 0.42), 34dvh);
   position: relative;
@@ -198,8 +200,8 @@ onBeforeUnmount(clearPress)
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  width: 11.6rem;
-  height: 11.6rem;
+  width: var(--seat-ring-center, 11.6rem);
+  height: var(--seat-ring-center, 11.6rem);
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid rgba(201, 162, 39, 0.35);
@@ -237,5 +239,13 @@ onBeforeUnmount(clearPress)
 .ring__btn:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 0;
+}
+
+/* 鼠标悬停可选座位：头像描边变金（触屏不受影响） */
+@media (hover: hover) {
+  .ring__btn--selectable:hover :deep(.sa__circle) {
+    border-color: var(--gold);
+    transition-duration: 150ms;
+  }
 }
 </style>

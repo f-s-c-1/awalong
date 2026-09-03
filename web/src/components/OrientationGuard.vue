@@ -1,15 +1,19 @@
 <script setup lang="ts">
-// 锁竖屏：触屏设备横屏时全屏遮罩，不做横屏适配
+// 锁竖屏：仅手机尺寸的触屏设备横屏时全屏遮罩，不做横屏适配；平板 / PC 宽屏永不弹出
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-const QUERY = '(orientation: landscape) and (pointer: coarse)'
+/** 手机判定阈值：短边 < 768px（横屏时短边是高度，因此媒体查询用 max-height） */
+const PHONE_MAX = 768
+const QUERY = `(orientation: landscape) and (pointer: coarse) and (max-height: ${PHONE_MAX - 1}px)`
 
 const landscape = ref(false)
 let mql: MediaQueryList | null = null
 
 function update(): void {
   const byQuery = mql ? mql.matches : false
-  landscape.value = byQuery && window.innerWidth > window.innerHeight
+  const w = window.innerWidth
+  const h = window.innerHeight
+  landscape.value = byQuery && w > h && Math.min(w, h) < PHONE_MAX
 }
 
 onMounted(() => {

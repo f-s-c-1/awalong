@@ -111,6 +111,18 @@ async function onClick(): Promise<void> {
   outline-offset: 2px;
 }
 
+/* 鼠标悬停：边框变金（触屏不受影响） */
+@media (hover: hover) {
+  .vb__btn {
+    transition-duration: 150ms;
+  }
+
+  .vb__btn:hover:not(:disabled) {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+}
+
 .vb__hint {
   font-size: 1.1rem;
   letter-spacing: 0.1rem;

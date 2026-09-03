@@ -186,7 +186,7 @@ watch(
         <span v-if="mySeat !== undefined" class="game__me">{{ mySeat }} 号 · {{ user.nickname }}</span>
         <span v-else class="game__me">旁观</span>
       </div>
-      <VoiceBar v-if="mySeat !== undefined" />
+      <VoiceBar v-if="mySeat !== undefined" class="game__voice" />
     </header>
 
     <template v-if="state">
@@ -207,7 +207,7 @@ watch(
         </template>
       </SeatRing>
 
-      <PhaseBar :label="phaseCopy.label" :text="phaseCopy.text" :deadline="deadline" />
+      <PhaseBar class="game__phase" :label="phaseCopy.label" :text="phaseCopy.text" :deadline="deadline" />
 
       <section class="game__action card" aria-label="操作区">
         <span v-if="actionCopy.label" class="game__action-label">{{ actionCopy.label }}</span>
@@ -310,5 +310,111 @@ watch(
   min-height: 4.4rem;
   font-size: 1.3rem;
   letter-spacing: 0.2rem;
+}
+
+/* 平板 ≥768px：单列，座位环放大到 56rem */
+@media (min-width: 768px) {
+  .game__ring {
+    --seat-ring-w: var(--ring-lg);
+    --seat-ring-center: 14rem;
+  }
+
+  .game__room,
+  .game__me,
+  .game__action-label {
+    font-size: 1.3rem;
+  }
+
+  .game__center-title {
+    font-size: 1.5rem;
+  }
+
+  .game__center-main {
+    font-size: 2.4rem;
+  }
+
+  .game__center-sub {
+    font-size: 1.3rem;
+  }
+}
+
+/* 桌面 ≥1024px：双栏——顶部信息行横跨两栏，左栏座位环，右栏依次为任务盾 / 阶段条 / 操作区 / 语音
+   DOM 顺序不变：头部改为 display: contents，让其子节点（信息行、语音按钮）直接参与 grid 排布 */
+@media (min-width: 1024px) {
+  .game {
+    display: grid;
+    grid-template-columns: var(--ring-lg) minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'top top'
+      'ring track'
+      'ring phase'
+      'ring action'
+      'ring voice';
+    column-gap: var(--col-gap);
+    align-items: start;
+    min-height: 0;
+  }
+
+  /* 区块间距用 margin 而非 row-gap：语音按钮不渲染（旁观者）时不会留下空行 */
+  .game__ring,
+  .game__track,
+  .game__phase,
+  .game__action,
+  .game__voice {
+    margin-top: 1.6rem;
+  }
+
+  .game__top {
+    display: contents;
+  }
+
+  .game__ident {
+    grid-area: top;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.6rem;
+    min-height: 3.2rem;
+  }
+
+  .game__voice {
+    grid-area: voice;
+    align-self: end;
+  }
+
+  .game__track {
+    grid-area: track;
+  }
+
+  .game__ring {
+    grid-area: ring;
+  }
+
+  .game__phase {
+    grid-area: phase;
+  }
+
+  .game__action {
+    grid-area: action;
+    align-self: stretch;
+    min-height: 12rem;
+    padding: 1.6rem 2rem;
+  }
+
+  /* 同步中（没有对局状态）：退回单列，头部恢复为普通信息行 */
+  .game:has(.game__loading) {
+    display: flex;
+    min-height: 100dvh;
+  }
+
+  .game:has(.game__loading) .game__top {
+    display: flex;
+  }
+
+  .game:has(.game__loading) .game__ident {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
 }
 </style>

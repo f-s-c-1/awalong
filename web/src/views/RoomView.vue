@@ -232,6 +232,7 @@ onBeforeUnmount(() => {
 
     <template v-else>
       <SeatRing
+        class="room__ring"
         :seats="ringSeats"
         :my-seat="mySeat"
         :total="total"
@@ -346,6 +347,18 @@ onBeforeUnmount(() => {
   border-color: var(--gold-line);
 }
 
+/* 鼠标悬停：复制 / 邀请标签边框变金（触屏不受影响） */
+@media (hover: hover) {
+  .room__tool {
+    transition-duration: 150ms;
+  }
+
+  .room__tool:hover {
+    color: var(--gold);
+    border-color: var(--gold);
+  }
+}
+
 .room__error {
   display: flex;
   flex-direction: column;
@@ -447,5 +460,107 @@ onBeforeUnmount(() => {
 
 .room__hint--error {
   color: var(--red);
+}
+
+/* 平板 ≥768px：单列，座位环放大到 56rem，准备 / 开始按钮限宽居中 */
+@media (min-width: 768px) {
+  .room__ring {
+    --seat-ring-w: var(--ring-lg);
+    --seat-ring-center: 14rem;
+  }
+
+  .room__center-title {
+    font-size: 2.4rem;
+  }
+
+  .room__center-sub {
+    font-size: 1.3rem;
+  }
+
+  .room__code {
+    font-size: 2.8rem;
+  }
+
+  .room__label,
+  .room__voice-tip,
+  .room__roles-empty {
+    font-size: 1.2rem;
+  }
+
+  .room__hint {
+    font-size: 1.3rem;
+  }
+
+  .room__footer {
+    width: 100%;
+    max-width: 40rem;
+    margin-inline: auto;
+  }
+}
+
+/* 桌面 ≥1024px：双栏——左栏座位环，右栏依次为房间码卡片 / 语音 / 本局角色 / 准备或开始
+   DOM 顺序不变，仅用 grid-template-areas 重排 */
+@media (min-width: 1024px) {
+  .room {
+    display: grid;
+    grid-template-columns: var(--ring-lg) minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'ring head'
+      'ring voice'
+      'ring roles'
+      'ring footer';
+    column-gap: var(--col-gap);
+    align-items: start;
+    min-height: 0;
+  }
+
+  /* 右栏区块间距用 margin 而非 row-gap：语音区不渲染（旁观者）时不会留下空行 */
+  .room__voice,
+  .room__roles,
+  .room__footer {
+    margin-top: 2rem;
+  }
+
+  /* 错误态（房间不存在 / 已解散）没有座位环，退回单列 */
+  .room:has(.room__error) {
+    display: flex;
+    min-height: 100dvh;
+  }
+
+  /* 顶部信息行在右栏变为房间码卡片 */
+  .room__top {
+    grid-area: head;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    margin-left: 0;
+    padding: 1.4rem 1.6rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1.2rem;
+  }
+
+  .room__code-wrap {
+    flex: 1;
+  }
+
+  .room__ring {
+    grid-area: ring;
+  }
+
+  .room__voice {
+    grid-area: voice;
+  }
+
+  .room__roles {
+    grid-area: roles;
+  }
+
+  .room__footer {
+    grid-area: footer;
+    align-self: end;
+    max-width: none;
+    padding-top: 0;
+  }
 }
 </style>

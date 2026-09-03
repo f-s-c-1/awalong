@@ -70,7 +70,7 @@ function back(): void {
 </script>
 
 <template>
-  <main class="page welcome">
+  <main class="page page--narrow welcome">
     <header class="welcome__head">
       <button type="button" class="icon-btn" aria-label="返回" @click="back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -250,5 +250,37 @@ function back(): void {
 
 .welcome__form > .btn {
   margin-top: auto;
+}
+
+/* 鼠标悬停头像：描边变金（触屏不受影响） */
+@media (hover: hover) {
+  .avatars__item {
+    transition-duration: 150ms;
+  }
+
+  .avatars__item:hover {
+    border-color: var(--gold);
+  }
+}
+
+/* 平板 / PC ≥768px：居中 56rem 单列（由 .page--narrow 提供）；头像网格保持 4 列（与方向键导航一致），限定单格尺寸 */
+@media (min-width: 768px) {
+  .welcome__title {
+    font-size: 2.4rem;
+  }
+
+  .avatars__grid {
+    grid-template-columns: repeat(4, 7.2rem);
+    gap: 1.6rem;
+  }
+
+  .avatars__icon {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+
+  .field__hint {
+    font-size: 1.2rem;
+  }
 }
 </style>

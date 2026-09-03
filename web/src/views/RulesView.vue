@@ -59,7 +59,7 @@ function back(): void {
 </script>
 
 <template>
-  <main class="page rules">
+  <main class="page page--narrow rules">
     <header class="rules__head">
       <button type="button" class="icon-btn" aria-label="返回" @click="back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -452,5 +452,41 @@ function back(): void {
   font-size: 1.2rem;
   line-height: 1.6;
   color: var(--muted);
+}
+
+/* 平板 / PC ≥768px：居中 56rem 单列（由 .page--narrow 提供），正文字号提到 13px 以上 */
+@media (min-width: 768px) {
+  .rules {
+    gap: 3.2rem;
+  }
+
+  .rules__title {
+    font-size: 2.4rem;
+  }
+
+  .side__desc,
+  .step__desc,
+  .role__desc,
+  .boards__item,
+  .rules__note {
+    font-size: 1.3rem;
+  }
+
+  .step__title {
+    font-size: 1.5rem;
+  }
+
+  .role__name {
+    font-size: 1.4rem;
+  }
+
+  .role__brief {
+    font-size: 1.2rem;
+  }
+
+  .table,
+  .notes {
+    font-size: 1.3rem;
+  }
 }
 </style>
