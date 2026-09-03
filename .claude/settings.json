@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git init -b main)",
+      "PowerShell(git remote add origin https://github.com/f-s-c-1/awalong.git)",
+      "PowerShell(git ls-remote origin)",
+      "PowerShell(git add README.md docs)",
+      "PowerShell(git commit -m \"docs: ���Ӱ���¡С����������Ʒ���\\(����/�ܹ�/����/����/UI/·��ͼ\\)\")",
+      "PowerShell(git push -u origin main)"
+    ]
+  }
+}
