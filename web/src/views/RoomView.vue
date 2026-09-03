@@ -6,6 +6,7 @@ import type { RoleId } from '@awalong/shared'
 import SeatRing from '@/components/SeatRing.vue'
 import VoiceBar from '@/components/VoiceBar.vue'
 import { api, ApiError } from '@/services/api'
+import { inviteText, renderInviteCard } from '@/services/inviteCard'
 import { ws } from '@/services/ws'
 import { useGameStore } from '@/stores/game'
 import { useMarksStore } from '@/stores/marks'
@@ -28,6 +29,10 @@ const voice = useVoiceStore()
 const error = ref('')
 const copied = ref(false)
 const pending = ref(false)
+/** 邀请图片弹层：data URL；null 为关闭 */
+const inviteImage = ref<string | null>(null)
+const inviteCopied = ref(false)
+const inviteBusy = ref(false)
 let copiedTimer: number | undefined
 let stopOpen: (() => void) | undefined
 const now = ref(Date.now())
@@ -162,17 +167,45 @@ async function copyLink(): Promise<void> {
   if (!ok) error.value = '复制失败，请长按房间码手动复制'
 }
 
+/**
+ * 邀请好友：微信对未接入公众号 JS-SDK 的网页一律降级为纯链接，
+ * 因此以「邀请图片（房间码 + 二维码）+ 邀请文案」为主，系统分享面板为辅。
+ */
 async function invite(): Promise<void> {
-  const data = { title: '阿瓦隆', text: `来一局阿瓦隆，房间码 ${code.value}`, url: shareUrl.value }
+  if (inviteBusy.value) return
+  inviteBusy.value = true
   try {
-    if (navigator.share) {
-      await navigator.share(data)
+    inviteImage.value = await renderInviteCard({
+      code: code.value,
+      url: shareUrl.value,
+      host: location.host,
+    })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '生成邀请图片失败'
+  } finally {
+    inviteBusy.value = false
+  }
+}
+
+async function copyInviteText(): Promise<void> {
+  const text = inviteText(code.value, shareUrl.value)
+  try {
+    if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent) && !/MicroMessenger/i.test(navigator.userAgent)) {
+      await navigator.share({ title: '阿瓦隆', text, url: shareUrl.value })
       return
     }
   } catch {
-    // 用户取消分享或不支持：回退到复制
+    // 用户取消系统分享：回退到复制
   }
-  await copyLink()
+  inviteCopied.value = await copyText(text)
+  if (!inviteCopied.value) error.value = '复制失败，请长按房间码手动复制'
+  window.setTimeout(() => {
+    inviteCopied.value = false
+  }, 2000)
+}
+
+function closeInvite(): void {
+  inviteImage.value = null
 }
 
 function leave(): void {
@@ -221,7 +254,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="room__tools">
         <button type="button" class="room__tool" @click="copyLink">{{ copied ? '已复制' : '复制' }}</button>
-        <button type="button" class="room__tool" @click="invite">邀请好友</button>
+        <button type="button" class="room__tool" :disabled="inviteBusy" @click="invite">邀请好友</button>
       </div>
     </header>
 
@@ -293,6 +326,19 @@ onBeforeUnmount(() => {
         <button v-else type="button" class="btn btn-disabled" disabled>旁观中</button>
       </footer>
     </template>
+
+    <div v-if="inviteImage" class="invite" role="dialog" aria-modal="true" aria-label="邀请好友" @click.self="closeInvite">
+      <div class="invite__panel">
+        <img class="invite__img" :src="inviteImage" alt="邀请图片：房间码与二维码" />
+        <p class="invite__hint">长按图片保存或发送给好友，微信长按识别二维码即可进房</p>
+        <div class="invite__actions">
+          <button type="button" class="btn btn-primary" @click="copyInviteText">
+            {{ inviteCopied ? '已复制，去微信粘贴' : '复制邀请文案' }}
+          </button>
+          <button type="button" class="btn btn-secondary" @click="closeInvite">关闭</button>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
@@ -460,6 +506,46 @@ onBeforeUnmount(() => {
 
 .room__hint--error {
   color: var(--red);
+}
+
+/* 邀请图片弹层 */
+.invite {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.4rem;
+  background: rgba(20, 16, 25, 0.82);
+}
+
+.invite__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: 100%;
+  max-width: 34rem;
+}
+
+.invite__img {
+  width: 100%;
+  border-radius: 1.2rem;
+  box-shadow: var(--shadow-card);
+}
+
+.invite__hint {
+  margin: 0;
+  text-align: center;
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.invite__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
 /* 平板 ≥768px：单列，座位环放大到 56rem，准备 / 开始按钮限宽居中 */

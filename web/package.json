@@ -13,11 +13,13 @@
     "@awalong/shared": "workspace:*",
     "livekit-client": "^2.7.0",
     "pinia": "^2.2.0",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.0",
     "vue-router": "^4.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-vue": "^5.0.0",
     "sharp": "^0.33.5",
     "typescript": "^5.6.0",
