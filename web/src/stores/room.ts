@@ -31,6 +31,8 @@ export const useRoomStore = defineStore('room', () => {
   const closedReason = ref<string | null>(null)
   /** 最近一条服务端业务错误（error 消息），供页面提示 */
   const lastError = ref<RoomError | null>(null)
+  /** 建房时选好的设置：进入大厅收到首次 room.sync 后由房主通过 room.settings 下发 */
+  const pendingSettings = ref<RoomSettings | null>(null)
 
   const playerCount = computed(() => settings.value?.playerCount ?? seats.value.length)
   const seatedCount = computed(() => seats.value.length)
@@ -125,6 +127,7 @@ export const useRoomStore = defineStore('room', () => {
     synced,
     closedReason,
     lastError,
+    pendingSettings,
     playerCount,
     seatedCount,
     isFull,

@@ -2,8 +2,10 @@
 // 房间大厅：房间码 + 座位环 + 角色板子 + 准备/开始；数据全部来自 room.sync 推送
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import type { RoleId } from '@awalong/shared'
+import { defaultSettings } from '@awalong/shared'
+import type { RoleId, RoomSettings } from '@awalong/shared'
 import SeatRing from '@/components/SeatRing.vue'
+import SettingsSheet from '@/components/SettingsSheet.vue'
 import VoiceBar from '@/components/VoiceBar.vue'
 import { api, ApiError } from '@/services/api'
 import { inviteText, renderInviteCard } from '@/services/inviteCard'
@@ -29,6 +31,8 @@ const voice = useVoiceStore()
 const error = ref('')
 const copied = ref(false)
 const pending = ref(false)
+/** 对局设置面板（房主） */
+const settingsOpen = ref(false)
 /** 邀请图片弹层：data URL；null 为关闭 */
 const inviteImage = ref<string | null>(null)
 const inviteCopied = ref(false)
@@ -208,6 +212,26 @@ function closeInvite(): void {
   inviteImage.value = null
 }
 
+const settingsInitial = computed<RoomSettings>(() => room.settings ?? defaultSettings(room.playerCount || 8))
+
+function applySettings(settings: RoomSettings): void {
+  settingsOpen.value = false
+  ws.send({ type: 'room.settings', settings })
+}
+
+// 建房时选好的设置：首次同步且确认自己是房主后下发一次
+watch(
+  () => room.synced && isOwner.value && room.pendingSettings,
+  (ready) => {
+    const pending = room.pendingSettings
+    if (!ready || !pending) return
+    room.pendingSettings = null
+    if (pending.playerCount !== room.playerCount || JSON.stringify(pending) !== JSON.stringify(room.settings)) {
+      ws.send({ type: 'room.settings', settings: pending })
+    }
+  },
+)
+
 function leave(): void {
   void voice.leave()
   ws.send({ type: 'room.leave' })
@@ -253,6 +277,7 @@ onBeforeUnmount(() => {
         <strong class="room__code serif" :aria-label="`房间码 ${code}`">{{ spacedCode }}</strong>
       </div>
       <div class="room__tools">
+        <button v-if="isOwner && inLobby" type="button" class="room__tool room__tool--gold" @click="settingsOpen = true">设置</button>
         <button type="button" class="room__tool" @click="copyLink">{{ copied ? '已复制' : '复制' }}</button>
         <button type="button" class="room__tool" :disabled="inviteBusy" @click="invite">邀请好友</button>
       </div>
@@ -327,6 +352,15 @@ onBeforeUnmount(() => {
       </footer>
     </template>
 
+    <SettingsSheet
+      :open="settingsOpen"
+      :initial="settingsInitial"
+      mode="edit"
+      :seated="room.seatedCount"
+      @confirm="applySettings"
+      @close="settingsOpen = false"
+    />
+
     <div v-if="inviteImage" class="invite" role="dialog" aria-modal="true" aria-label="邀请好友" @click.self="closeInvite">
       <div class="invite__panel">
         <img class="invite__img" :src="inviteImage" alt="邀请图片：房间码与二维码" />
@@ -389,6 +423,11 @@ onBeforeUnmount(() => {
 }
 
 .room__tool:active {
+  color: var(--gold);
+  border-color: var(--gold-line);
+}
+
+.room__tool--gold {
   color: var(--gold);
   border-color: var(--gold-line);
 }

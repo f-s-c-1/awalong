@@ -2,18 +2,27 @@
 // 封面首页：圣剑徽章对称构图（星幕 + 环形圆桌纹 + 竖剑徽章），忠实还原 Main 画板
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { defaultSettings } from '@awalong/shared'
+import type { RoomSettings } from '@awalong/shared'
+import SettingsSheet from '@/components/SettingsSheet.vue'
 import { api, ApiError, loadAuth } from '@/services/api'
+import { useRoomStore } from '@/stores/room'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
 const user = useUserStore()
+const room = useRoomStore()
 
 const creating = ref(false)
+/** 建房前的对局设置面板 */
+const settingsOpen = ref(false)
+const settingsInitial = defaultSettings(8)
 const error = ref('')
 /** 服务端记录的所在房间：关掉页面后重新打开可直接回去 */
 const activeRoom = ref<string | null>(null)
 
+/** 点击「创建房间」：先选人数与板子，确认后再建房 */
 async function createRoom(): Promise<void> {
   if (creating.value) return
   // 建房前必须先有昵称与头像（匿名登录也需要），完成后带 create=1 回到首页自动继续
@@ -21,12 +30,20 @@ async function createRoom(): Promise<void> {
     await router.push({ path: '/welcome', query: { redirect: '/?create=1' } })
     return
   }
+  settingsOpen.value = true
+}
+
+async function confirmCreate(settings: RoomSettings): Promise<void> {
+  settingsOpen.value = false
+  if (creating.value) return
   creating.value = true
   error.value = ''
   try {
     await user.ensureAuth()
-    const room = await api.createRoom(undefined, user.currentProfile)
-    await router.push(`/r/${room.code}`)
+    const created = await api.createRoom(settings.playerCount, user.currentProfile)
+    // 人数以外的设置（板子、限时等）进大厅后由房主下发
+    room.pendingSettings = settings
+    await router.push(`/r/${created.code}`)
   } catch (err) {
     error.value = err instanceof ApiError ? `创建失败：${err.message}` : '创建失败，请稍后再试'
   } finally {
@@ -139,6 +156,8 @@ onMounted(() => {
       <button type="button" class="btn btn-secondary" @click="goJoin">输入房间码加入</button>
       <p v-if="error" class="error-text home__error" role="alert">{{ error }}</p>
     </div>
+
+    <SettingsSheet :open="settingsOpen" :initial="settingsInitial" mode="create" @confirm="confirmCreate" @close="settingsOpen = false" />
 
     <nav class="home__links" aria-label="更多">
       <RouterLink class="home__link" to="/rules">游戏规则</RouterLink>

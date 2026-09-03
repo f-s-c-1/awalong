@@ -57,7 +57,7 @@ const circleStyle = computed(() =>
 )
 
 const displayName = computed(() => {
-  if (props.empty) return '空位'
+  if (props.empty) return `${props.seat} 号空位`
   return props.me ? `${props.nickname} · 我` : props.nickname
 })
 </script>
@@ -72,9 +72,7 @@ const displayName = computed(() => {
       </slot>
 
       <div class="sa__circle" :style="circleStyle">
-        <svg v-if="empty" class="sa__plus" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 6v12M6 12h12" />
-        </svg>
+        <span v-if="empty" class="sa__empty-no serif" aria-hidden="true">{{ seat }}</span>
         <AvatarIcon v-else class="sa__icon" :id="avatar" />
         <div v-if="offline" class="sa__off" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
@@ -174,12 +172,10 @@ const displayName = computed(() => {
   height: calc(var(--size) / 2);
 }
 
-.sa__plus {
-  width: 2rem;
-  height: 2rem;
-  stroke: var(--border);
-  stroke-width: 2;
-  stroke-linecap: round;
+.sa__empty-no {
+  font-size: calc(var(--size) * 0.38);
+  font-weight: 700;
+  color: var(--border);
 }
 
 /* 断线：压暗 + 图标 */
