@@ -17,7 +17,7 @@
 ## 技术栈
 
 - 前端：Vue 3 + TypeScript + Vite（移动端 H5）
-- 服务端：Node.js + NestJS + WebSocket
+- 服务端：Node.js + Fastify + WebSocket（纯函数状态机 + 视角投影）
 - 存储：Redis（房间/对局态）+ MySQL（用户/战绩）
 - 语音：自建 LiveKit SFU（WebRTC，纯音频）
 

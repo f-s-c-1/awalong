@@ -1,0 +1,16 @@
+{
+  "name": "awalong",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.3",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build",
+    "dev:server": "pnpm --filter @awalong/server dev",
+    "dev:web": "pnpm --filter @awalong/web dev"
+  }
+}
