@@ -78,6 +78,7 @@ async function onRetry(): Promise<void> {
       <button type="button" class="vb__retry" @click="onRetry">重试</button>
     </span>
     <span v-else-if="!voice.canSubscribe && voice.connected" class="vb__hint">本阶段无法收听</span>
+    <span v-else-if="voice.playbackBlocked && voice.connected" class="vb__hint vb__hint--busy">点击屏幕任意处开启声音</span>
   </div>
 </template>
 

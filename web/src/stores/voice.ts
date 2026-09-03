@@ -37,6 +37,9 @@ export const useVoiceStore = defineStore('voice', () => {
     onMicChanged: (enabled) => {
       micEnabled.value = enabled
     },
+    onPlayback: (ok) => {
+      playbackBlocked.value = !ok
+    },
   })
 
   const connected = computed(() => state.value === 'connected')
@@ -71,15 +74,23 @@ export const useVoiceStore = defineStore('voice', () => {
   /** 连接过程中的阶段提示（连接中按钮旁显示） */
   const progress = ref('')
 
-  /** 在用户点击回调里调用：拿令牌、连房、开麦。点击即进入连接态，避免等待凭证期间无反馈 */
+  /** 远端声音是否已解锁播放（iOS 需要一次点击） */
+  const playbackBlocked = ref(false)
+
+  /**
+   * 在用户点击回调里调用。顺序很重要：先申请麦克风（iOS/微信要求紧随手势），
+   * 再拿令牌、连房、发布音轨；点击即进入连接态，避免等待期间无反馈
+   */
   async function join(code: string): Promise<void> {
     if (availability.value === 'unsupported' || state.value === 'connecting') return
     sfx.unlock()
     state.value = 'connecting'
     message.value = ''
-    progress.value = '获取语音凭证…'
+    progress.value = '申请麦克风权限…'
     const startedAt = Date.now()
     try {
+      await client.acquireMic()
+      progress.value = '获取语音凭证…'
       const info = await api.voiceToken()
       roomCode.value = code
       progress.value = '连接语音服务器…'
@@ -87,8 +98,8 @@ export const useVoiceStore = defineStore('voice', () => {
       if (client.connected) {
         availability.value = 'ready'
         wantMic.value = true
-        progress.value = '开启麦克风…'
-        if (canPublish.value) await client.enableMic(true)
+        progress.value = '发布麦克风…'
+        await client.enableMic(canPublish.value)
         progress.value = ''
         console.info(`[voice] 连接用时 ${Date.now() - startedAt}ms`)
       } else {
@@ -175,6 +186,7 @@ export const useVoiceStore = defineStore('voice', () => {
     speakingSeats,
     roomCode,
     progress,
+    playbackBlocked,
     join,
     retry,
     toggleMic,
