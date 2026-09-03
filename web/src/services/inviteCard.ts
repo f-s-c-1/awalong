@@ -88,7 +88,7 @@ export async function renderInviteCard(input: InviteCardInput): Promise<string> 
     errorCorrectionLevel: 'M',
   })
   const qrX = W / 2 - qrSize / 2
-  const qrY = 670
+  const qrY = 662
   ctx.fillStyle = '#FFFFFF'
   roundRect(ctx, qrX - 14, qrY - 14, qrSize + 28, qrSize + 28, 16)
   ctx.fill()
@@ -96,10 +96,10 @@ export async function renderInviteCard(input: InviteCardInput): Promise<string> 
 
   ctx.fillStyle = '#9B93AB'
   ctx.font = '24px "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillText('长按识别二维码进入房间', W / 2, 940)
-  ctx.fillStyle = '#5C5175'
+  ctx.fillText('长按识别二维码进入房间', W / 2, 928)
+  ctx.fillStyle = '#6B5E85'
   ctx.font = '20px "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillText(input.host, W / 2, 972)
+  ctx.fillText(input.host, W / 2, 958)
 
   return canvas.toDataURL('image/png')
 }
