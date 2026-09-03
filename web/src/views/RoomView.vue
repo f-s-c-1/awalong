@@ -504,15 +504,23 @@ onBeforeUnmount(() => {
   .room {
     display: grid;
     grid-template-columns: var(--ring-lg) minmax(0, 1fr);
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
     grid-template-areas:
       'ring head'
       'ring voice'
       'ring roles'
       'ring footer';
-    column-gap: var(--col-gap);
+    column-gap: calc(var(--col-gap) * 1.5);
     align-items: start;
+    align-content: center;
     min-height: 0;
+  }
+
+  /* 大屏座位环：头像随之放大 */
+  .room__ring {
+    --seat-size: 6.4rem;
+    --seat-name: 1.2rem;
+    --seat-ring-center: 16rem;
   }
 
   /* 右栏区块间距用 margin 而非 row-gap：语音区不渲染（旁观者）时不会留下空行 */
@@ -528,20 +536,45 @@ onBeforeUnmount(() => {
     min-height: 100dvh;
   }
 
-  /* 顶部信息行在右栏变为房间码卡片 */
+  /* 顶部信息行在右栏变为房间码卡片：第一行返回 + 房间码，第二行复制 / 邀请 */
   .room__top {
     grid-area: head;
     flex-wrap: wrap;
-    gap: 1.2rem;
+    gap: 1.2rem 1.6rem;
     margin-left: 0;
-    padding: 1.4rem 1.6rem;
+    padding: 1.6rem 2rem;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 1.2rem;
   }
 
   .room__code-wrap {
-    flex: 1;
+    flex: 1 1 auto;
+  }
+
+  .room__code {
+    font-size: 3.6rem;
+    letter-spacing: 0.5rem;
+  }
+
+  .room__tools {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+
+  .room__tool {
+    min-height: 4rem;
+    padding: 0 1.6rem;
+    font-size: 1.3rem;
+  }
+
+  .room__voice {
+    flex-wrap: wrap;
+    gap: 1rem 1.6rem;
+  }
+
+  .room__voice-tip {
+    width: 100%;
   }
 
   .room__ring {
@@ -558,8 +591,9 @@ onBeforeUnmount(() => {
 
   .room__footer {
     grid-area: footer;
-    align-self: end;
+    align-self: start;
     max-width: none;
+    margin-top: 3.2rem;
     padding-top: 0;
   }
 }

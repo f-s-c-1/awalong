@@ -172,7 +172,7 @@ onBeforeUnmount(clearPress)
   position: relative;
   left: 50%;
   width: var(--ring-w);
-  height: calc(var(--r) * 2 + 8.4rem);
+  height: calc(var(--r) * 2 + var(--seat-size, 4.8rem) + 3.6rem);
   transform: translateX(-50%);
   user-select: none;
   -webkit-user-select: none;

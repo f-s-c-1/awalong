@@ -126,6 +126,7 @@ async function onClick(): Promise<void> {
 .vb__hint {
   font-size: 1.1rem;
   letter-spacing: 0.1rem;
+  white-space: nowrap;
   color: var(--small);
 }
 </style>

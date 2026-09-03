@@ -128,18 +128,20 @@ const displayName = computed(() => {
 </template>
 
 <style scoped>
+/* 尺寸由父级通过 --seat-size / --seat-name 覆写（大屏放大），默认为手机值 */
 .sa {
+  --size: var(--seat-size, 4.8rem);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
-  width: 5.6rem;
+  width: calc(var(--size) + 0.8rem);
 }
 
 .sa__wrap {
   position: relative;
-  width: 4.8rem;
-  height: 4.8rem;
+  width: var(--size);
+  height: var(--size);
 }
 
 .sa__circle {
@@ -147,8 +149,8 @@ const displayName = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4.8rem;
-  height: 4.8rem;
+  width: var(--size);
+  height: var(--size);
   border-radius: 50%;
   border: 2px solid var(--line);
   color: var(--text);
@@ -168,8 +170,8 @@ const displayName = computed(() => {
 }
 
 .sa__icon {
-  width: 2.4rem;
-  height: 2.4rem;
+  width: calc(var(--size) / 2);
+  height: calc(var(--size) / 2);
 }
 
 .sa__plus {
@@ -313,7 +315,7 @@ const displayName = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 1rem;
+  font-size: var(--seat-name, 1rem);
   line-height: 1.3;
   color: var(--muted);
 }

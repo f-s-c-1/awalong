@@ -351,9 +351,17 @@ watch(
       'ring phase'
       'ring action'
       'ring voice';
-    column-gap: var(--col-gap);
+    column-gap: calc(var(--col-gap) * 1.5);
     align-items: start;
+    align-content: center;
     min-height: 0;
+  }
+
+  /* 大屏座位环：头像随之放大 */
+  .game__ring {
+    --seat-size: 6.4rem;
+    --seat-name: 1.2rem;
+    --seat-ring-center: 16rem;
   }
 
   /* 区块间距用 margin 而非 row-gap：语音按钮不渲染（旁观者）时不会留下空行 */
