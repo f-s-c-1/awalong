@@ -7,6 +7,7 @@ import { GameService } from './game/game.service'
 import { cryptoRng, type Rng } from './game/rng'
 import { registerRoutes } from './http/routes'
 import { RoomService } from './room/room.service'
+import { VoiceService } from './voice/voice.service'
 import { Gateway } from './ws/gateway'
 
 export interface AppContext {
@@ -15,6 +16,7 @@ export interface AppContext {
   rooms: RoomService
   games: GameService
   gateway: Gateway
+  voice: VoiceService
 }
 
 export async function buildApp(options: { logger?: boolean; rng?: Rng } = {}): Promise<AppContext> {
@@ -24,6 +26,7 @@ export async function buildApp(options: { logger?: boolean; rng?: Rng } = {}): P
 
   const users = new UserStore()
   const rooms = new RoomService()
+  const voice = new VoiceService()
   let gateway!: Gateway
   const games = new GameService(
     rooms,
@@ -33,16 +36,29 @@ export async function buildApp(options: { logger?: boolean; rng?: Rng } = {}): P
       roomChanged: (code) => gateway.roomChanged(code),
     },
     options.rng ?? cryptoRng(),
+    () => Date.now(),
+    {
+      onVoicePolicy: (room, policy, players) => {
+        void voice.applyPolicy(
+          room.code,
+          policy,
+          players.map((p) => ({ uid: p.uid, seat: p.seat, nickname: p.nickname })),
+        )
+      },
+    },
   )
   gateway = new Gateway(rooms, games, users)
 
-  registerRoutes(app, users, rooms)
+  registerRoutes(app, users, rooms, voice)
   gateway.register(app)
 
   const sweeper = setInterval(() => {
-    for (const code of rooms.sweep(Date.now(), config.idleRoomMs)) games.discard(code)
+    for (const code of rooms.sweep(Date.now(), config.idleRoomMs)) {
+      games.discard(code)
+      void voice.closeRoom(code)
+    }
   }, 60_000)
   app.addHook('onClose', () => clearInterval(sweeper))
 
-  return { app, users, rooms, games, gateway }
+  return { app, users, rooms, games, gateway, voice }
 }

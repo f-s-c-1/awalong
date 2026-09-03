@@ -1,8 +1,8 @@
-import type { ServerMsg } from '@awalong/shared'
+import type { ServerMsg, VoicePolicy } from '@awalong/shared'
 import { GameError, createGame, reduce, type Action, type Effect } from './fsm'
 import { projectFor, secretFor } from './projection'
 import { cryptoRng, type Rng } from './rng'
-import type { GameState } from './state'
+import type { GameState, PlayerState } from './state'
 import type { Room, RoomService } from '../room/room.service'
 
 export interface Transport {
@@ -10,6 +10,11 @@ export interface Transport {
   sendToUids(uids: string[], msg: ServerMsg): void
   /** 房间状态因对局变化（如终局回到大厅）时通知，用于广播 room.sync */
   roomChanged(code: string): void
+}
+
+export interface GameHooks {
+  /** 语音权限策略变化（LiveKit 联动） */
+  onVoicePolicy?: (room: Room, policy: VoicePolicy, players: PlayerState[]) => void
 }
 
 /**
@@ -25,6 +30,7 @@ export class GameService {
     private readonly transport: Transport,
     private readonly rng: Rng = cryptoRng(),
     private readonly now: () => number = () => Date.now(),
+    private readonly hooks: GameHooks = {},
   ) {}
 
   get(code: string): GameState | undefined {
@@ -123,6 +129,7 @@ export class GameService {
           break
         case 'voice':
           this.transport.sendToUids(uids, { type: 'voice.policy', policy: effect.policy })
+          this.hooks.onVoicePolicy?.(room, effect.policy, state.players)
           break
         case 'speaker':
           this.transport.sendToUids(uids, { type: 'speaker.turn', seat: effect.seat, deadline: effect.deadline })
