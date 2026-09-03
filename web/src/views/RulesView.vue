@@ -122,7 +122,7 @@ function back(): void {
       </ul>
     </section>
 
-    <section class="rules__section" aria-labelledby="config-title">
+    <section class="rules__section rules__section--config" aria-labelledby="config-title">
       <h2 id="config-title" class="section-title">人数配置</h2>
       <div class="table-wrap">
         <table class="table">
@@ -487,6 +487,100 @@ function back(): void {
   .table,
   .notes {
     font-size: 1.3rem;
+  }
+}
+
+/* 桌面 ≥1024px：内容页拉宽后，角色四列、流程两列，表格与板子并排 */
+@media (min-width: 1024px) {
+  .rules {
+    gap: 4rem;
+  }
+
+  .rules__title {
+    font-size: 2.8rem;
+  }
+
+  .sides {
+    gap: 1.6rem;
+  }
+
+  .side {
+    padding: 2rem;
+  }
+
+  .side__name {
+    font-size: 1.8rem;
+  }
+
+  .side__desc {
+    font-size: 1.4rem;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 3.2rem;
+  }
+
+  .step__title {
+    font-size: 1.6rem;
+  }
+
+  .step__desc {
+    font-size: 1.35rem;
+  }
+
+  .roles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.2rem;
+  }
+
+  .role {
+    padding: 1.6rem;
+  }
+
+  .role__name {
+    font-size: 1.6rem;
+  }
+
+  .role__brief {
+    font-size: 1.25rem;
+  }
+
+  .role__desc {
+    font-size: 1.3rem;
+  }
+
+  .rules__section--config {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 1.2rem 3.2rem;
+  }
+
+  .rules__section--config .section-title {
+    grid-column: 1 / -1;
+  }
+
+  .boards {
+    gap: 1rem;
+  }
+
+  .boards__item {
+    font-size: 1.35rem;
+  }
+
+  .table {
+    font-size: 1.4rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 1rem 0.8rem;
+  }
+
+  .notes {
+    font-size: 1.4rem;
+    gap: 1rem;
   }
 }
 </style>

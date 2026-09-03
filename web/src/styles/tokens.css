@@ -45,7 +45,8 @@
  * 断点体系（全站统一，新增规则只允许写在 min-width 递增的媒体查询内，手机 <768px 的表现不受影响）：
  *   手机   <768px ：1rem = 100vw / 39，≥480px 封顶 12.3px，内容 480px 单列（主战场，保持不变）
  *   平板/PC ≥768px ：1rem = 10px 固定，.page 72rem，内容页 56rem，body 叠加与封面一致的金色光晕
- *   桌面   ≥1024px：.page 100rem，大厅 / 桌面切换为「座位环 56rem + 侧栏」双栏
+ *   桌面   ≥1024px：.page 100rem，内容页 76rem，大厅 / 桌面切换为「座位环 56rem + 侧栏」双栏
+ *   大屏   ≥1280 / 1536 / 1920 / 2400px：1rem 依次 11 / 12 / 13 / 14px，整体等比放大；≥1536 内容页 84rem
  */
 html {
   font-size: calc(100vw / 39);
@@ -74,6 +75,36 @@ html {
 @media (min-width: 1024px) {
   :root {
     --page-max: 100rem;
+    --page-narrow: 76rem;
+  }
+}
+
+/* 大屏按宽度递增基准字号：所有尺寸都以 rem 书写，容器与字号同步放大 */
+@media (min-width: 1280px) {
+  html {
+    font-size: 11px;
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    font-size: 12px;
+  }
+
+  :root {
+    --page-narrow: 84rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 2400px) {
+  html {
+    font-size: 14px;
   }
 }
 
