@@ -6,7 +6,9 @@ import { config } from './config'
 import { GameService } from './game/game.service'
 import { cryptoRng, type Rng } from './game/rng'
 import { registerRoutes } from './http/routes'
+import { MatchStore } from './match/match.store'
 import { RoomService } from './room/room.service'
+import { openPersistence } from './store/jsonl'
 import { VoiceService } from './voice/voice.service'
 import { Gateway } from './ws/gateway'
 
@@ -17,14 +19,18 @@ export interface AppContext {
   games: GameService
   gateway: Gateway
   voice: VoiceService
+  matches: MatchStore
 }
 
-export async function buildApp(options: { logger?: boolean; rng?: Rng } = {}): Promise<AppContext> {
+export async function buildApp(options: { logger?: boolean; rng?: Rng; dataDir?: string } = {}): Promise<AppContext> {
   const app = Fastify({ logger: options.logger === false ? false : { level: process.env.LOG_LEVEL ?? 'info' } })
   await app.register(cors, { origin: config.corsOrigin })
   await app.register(websocket)
 
-  const users = new UserStore()
+  // 用户与战绩落 DATA_DIR 下的 JSON Lines；未配置目录则仅内存（测试 / 本地）
+  const dataDir = options.dataDir ?? config.dataDir
+  const users = new UserStore(openPersistence(dataDir, 'users.ndjson'))
+  const matches = new MatchStore(openPersistence(dataDir, 'matches.ndjson'))
   const rooms = new RoomService()
   const voice = new VoiceService()
   let gateway!: Gateway
@@ -45,11 +51,18 @@ export async function buildApp(options: { logger?: boolean; rng?: Rng } = {}): P
           players.map((p) => ({ uid: p.uid, seat: p.seat, nickname: p.nickname })),
         )
       },
+      onGameOver: (_room, summary, players) => {
+        try {
+          matches.save(summary, players)
+        } catch (err) {
+          app.log.error({ err }, '战绩落库失败')
+        }
+      },
     },
   )
   gateway = new Gateway(rooms, games, users)
 
-  registerRoutes(app, users, rooms, voice)
+  registerRoutes(app, users, rooms, voice, matches)
   gateway.register(app)
 
   const sweeper = setInterval(() => {
@@ -60,5 +73,5 @@ export async function buildApp(options: { logger?: boolean; rng?: Rng } = {}): P
   }, 60_000)
   app.addHook('onClose', () => clearInterval(sweeper))
 
-  return { app, users, rooms, games, gateway, voice }
+  return { app, users, rooms, games, gateway, voice, matches }
 }

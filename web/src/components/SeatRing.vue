@@ -60,6 +60,10 @@ function describe(s: RingSeat): string {
   if (s.isLeader) parts.push('队长')
   if (s.selected) parts.push('已提名')
   if (s.voted) parts.push('已投票')
+  if (s.vote === true) parts.push('同意')
+  if (s.vote === false) parts.push('反对')
+  if (s.glow) parts.push('发言中')
+  if (s.busy) parts.push('出票中')
   if (s.ready) parts.push('已准备')
   if (!s.online) parts.push('已断线')
   if (s.speaking) parts.push('正在说话')
@@ -133,6 +137,8 @@ onBeforeUnmount(clearPress)
           type="button"
           class="ring__btn"
           :class="{ 'ring__btn--selectable': selectable }"
+          data-test="seat"
+          :data-seat="s.seat"
           :aria-label="describe(s)"
           :aria-pressed="selectable && !s.empty ? !!s.selected : undefined"
           @pointerdown="onPointerDown(s, $event)"
@@ -156,6 +162,11 @@ onBeforeUnmount(clearPress)
             :ready="s.ready"
             :mark="s.mark"
             :speaking="s.speaking"
+            :vote="s.vote"
+            :glow="s.glow"
+            :busy="s.busy"
+            :bubble="s.bubble"
+            :dimmed="s.dimmed"
           />
         </button>
       </li>

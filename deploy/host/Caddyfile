@@ -22,6 +22,13 @@
 		reverse_proxy 127.0.0.1:7880
 	}
 
+	# 自托管曲目：静态文件直出，缺失即 404（不能回落到 index.html，Cloudflare 会把 HTML 当 mp3 缓存 4 小时）
+	handle /music/* {
+		root * /srv/web
+		header Cache-Control "public, max-age=2592000"
+		file_server
+	}
+
 	# 单页应用
 	handle {
 		root * /srv/web

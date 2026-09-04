@@ -50,6 +50,8 @@ export class GameError extends Error {
 
 const VOICE_FREE: VoicePolicy = { muteAll: false, publishSeats: null, subscribeSeats: null }
 const VOICE_MUTED: VoicePolicy = { muteAll: true, publishSeats: null, subscribeSeats: null }
+/** 轮流发言：只有当前发言者可开麦，其余人只能听 */
+const speakerOnly = (seat: number): VoicePolicy => ({ muteAll: false, publishSeats: [seat], subscribeSeats: null })
 
 export interface CreateGameInput {
   roomCode: string
@@ -141,6 +143,7 @@ export function reduce(prev: GameState, action: Action, rng: Rng): ReduceResult 
     case 'TEAM_VOTE': {
       expectPhase(s, 'TEAM_VOTE')
       playerAt(s, action.seat)
+      if (s.speaker) throw new GameError('SPEAKING', '轮流发言尚未结束，全员发言后再表决')
       if (action.seat in s.teamVotes) throw new GameError('ALREADY_VOTED', '已经表决过了')
       s.teamVotes[action.seat] = action.approve
       if (Object.keys(s.teamVotes).length >= s.players.length) resolveTeamVote(s, effects, action.now, rng)
@@ -215,7 +218,7 @@ function startTeamVote(s: GameState, effects: Effect[], team: number[], now: num
     const first = seats[(startIdx + 1) % seats.length]!
     const deadline = now + s.settings.turnSeconds * 1000
     s.speaker = { seat: first, deadline }
-    effects.push({ kind: 'speaker', seat: first, deadline })
+    effects.push({ kind: 'speaker', seat: first, deadline }, { kind: 'voice', policy: speakerOnly(first) })
     s.deadline = now + (s.settings.turnSeconds * seats.length + s.settings.voteSeconds) * 1000
   } else {
     s.deadline = now + s.settings.voteSeconds * 1000
@@ -228,12 +231,14 @@ function advanceSpeaker(s: GameState, effects: Effect[], now: number): void {
   if (!s.speaker) return
   const next = nextSeat(s, s.speaker.seat)
   if (next === nextSeat(s, s.leaderSeat)) {
+    // 一圈说完：恢复自由发言，进入表决
     s.speaker = null
+    effects.push({ kind: 'voice', policy: VOICE_FREE })
     return
   }
   const deadline = now + s.settings.turnSeconds * 1000
   s.speaker = { seat: next, deadline }
-  effects.push({ kind: 'speaker', seat: next, deadline })
+  effects.push({ kind: 'speaker', seat: next, deadline }, { kind: 'voice', policy: speakerOnly(next) })
 }
 
 function resolveTeamVote(s: GameState, effects: Effect[], now: number, rng: Rng): void {

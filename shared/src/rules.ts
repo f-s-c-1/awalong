@@ -107,7 +107,7 @@ export function defaultSettings(playerCount = 8): RoomSettings {
     playerCount,
     roles: [...(RECOMMENDED_ROLES[playerCount] ?? RECOMMENDED_ROLES[8]!)],
     allowMarks: true,
-    speechMode: 'free',
+    speechMode: 'turns',
     turnSeconds: 30,
     ladyOfLake: false,
     pickSeconds: 60,

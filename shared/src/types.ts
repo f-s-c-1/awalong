@@ -117,3 +117,50 @@ export interface MatchSummary {
   startedAt: number
   endedAt: number
 }
+
+export interface MatchPlayer {
+  seat: number
+  uid: string
+  nickname: string
+  avatar: string
+}
+
+/** 落库的一局完整记录：结算摘要 + 记录 id + 玩家表（作废局不入库） */
+export interface MatchRecord extends MatchSummary {
+  id: string
+  players: MatchPlayer[]
+}
+
+/** 「我的战绩」列表项：以查看者视角标注座位、角色与胜负 */
+export interface MatchListItem {
+  id: string
+  roomCode: string
+  playerCount: number
+  winner: Side | null
+  winReason: WinReason
+  startedAt: number
+  endedAt: number
+  mySeat: number
+  myRole: RoleId
+  mySide: Side
+  won: boolean
+}
+
+export interface MatchStats {
+  games: number
+  wins: number
+  goodGames: number
+  goodWins: number
+  evilGames: number
+  evilWins: number
+  asMerlin: number
+  merlinSurvived: number
+  asAssassin: number
+  assassinHits: number
+}
+
+export interface MyMatchesResponse {
+  total: number
+  stats: MatchStats
+  items: MatchListItem[]
+}

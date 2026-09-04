@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { signToken, verifyToken, type UserStore } from '../auth'
 import { GameError } from '../game/fsm'
+import type { MatchStore } from '../match/match.store'
 import type { RoomService } from '../room/room.service'
 import type { VoiceService } from '../voice/voice.service'
 import { anonAuthSchema, createRoomSchema } from '../ws/schemas'
@@ -13,10 +14,23 @@ function authUid(req: FastifyRequest): string {
   return auth.uid
 }
 
-export function registerRoutes(app: FastifyInstance, users: UserStore, rooms: RoomService, voice: VoiceService): void {
+function intParam(value: unknown, fallback: number, min: number, max: number): number {
+  const n = typeof value === 'string' ? Number.parseInt(value, 10) : Number.NaN
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, n))
+}
+
+export function registerRoutes(
+  app: FastifyInstance,
+  users: UserStore,
+  rooms: RoomService,
+  voice: VoiceService,
+  matches: MatchStore,
+): void {
   app.setErrorHandler((err, _req, reply) => {
     if (err instanceof GameError) {
-      const status = err.code === 'UNAUTHORIZED' ? 401 : err.code === 'ROOM_NOT_FOUND' ? 404 : 400
+      const status =
+        err.code === 'UNAUTHORIZED' ? 401 : err.code === 'ROOM_NOT_FOUND' || err.code === 'MATCH_NOT_FOUND' ? 404 : 400
       void reply.status(status).send({ code: err.code, message: err.message })
       return
     }
@@ -50,6 +64,24 @@ export function registerRoutes(app: FastifyInstance, users: UserStore, rooms: Ro
     const user = users.update(uid, body)
     if (!user) throw new GameError('UNAUTHORIZED', '用户不存在，请重新进入')
     return user
+  })
+
+  /** 我的战绩：统计 + 倒序分页 */
+  app.get('/api/me/matches', async (req) => {
+    const uid = authUid(req)
+    const query = (req.query ?? {}) as Record<string, unknown>
+    const limit = intParam(query.limit, 30, 1, 100)
+    const offset = intParam(query.offset, 0, 0, 100_000)
+    return matches.listFor(uid, limit, offset)
+  })
+
+  /** 单局完整记录（结算后身份已公开，任何登录用户可看） */
+  app.get('/api/matches/:id', async (req) => {
+    authUid(req)
+    const { id } = req.params as { id: string }
+    const record = matches.get(id)
+    if (!record) throw new GameError('MATCH_NOT_FOUND', '对局记录不存在')
+    return record
   })
 
   app.post('/api/rooms', async (req) => {

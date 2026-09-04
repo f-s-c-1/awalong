@@ -20,7 +20,8 @@ function makePlayers(n: number) {
 
 function setup(n = 8, seed = 1, roles?: RoleId[]) {
   const rng = seededRng(seed)
-  const settings = { ...defaultSettings(n), roles: roles ?? [...RECOMMENDED_ROLES[n]!] }
+  // 基础用例用自由发言（默认已改为轮流发言，轮流发言另有专门用例与模糊测试覆盖）
+  const settings = { ...defaultSettings(n), speechMode: 'free' as const, roles: roles ?? [...RECOMMENDED_ROLES[n]!] }
   const r = createGame({ roomCode: '483920', settings, players: makePlayers(n), now: T0, rng })
   return { state: r.state, effects: r.effects, rng }
 }
@@ -414,6 +415,33 @@ describe('轮流发言模式', () => {
     expect(r.state.phase).toBe('TEAM_VOTE')
     expect(() => r.do({ type: 'SPEAKER_DONE', seat: 1, now: T0 })).toThrow(/发言轮次/)
   })
+
+  it('发言期间不能表决，且语音只给当前发言者开麦，说完一圈后恢复自由', () => {
+    const rng = seededRng(6)
+    const settings = { ...defaultSettings(5), speechMode: 'turns' as const, turnSeconds: 10 }
+    const created = createGame({ roomCode: 'r', settings, players: makePlayers(5), now: T0, rng })
+    const r = new Runner(created.state, rng)
+    r.confirmAll()
+    const leader = r.state.leaderSeat
+    const picked = r.do({ type: 'TEAM_PICK', seat: leader, team: r.goodTeam(), now: T0 })
+    const first = r.state.speaker!.seat
+    const voice = picked.effects.filter((e) => e.kind === 'voice')
+    expect(voice.at(-1)).toEqual({ kind: 'voice', policy: { muteAll: false, publishSeats: [first], subscribeSeats: null } })
+    expect(() => r.do({ type: 'TEAM_VOTE', seat: leader, approve: true, now: T0 })).toThrow(/发言/)
+
+    let last = r.do({ type: 'SPEAKER_DONE', seat: first, now: T0 + 1000 })
+    expect(last.effects.filter((e) => e.kind === 'voice').at(-1)).toEqual({
+      kind: 'voice',
+      policy: { muteAll: false, publishSeats: [r.state.speaker!.seat], subscribeSeats: null },
+    })
+    while (r.state.speaker) last = r.do({ type: 'SPEAKER_DONE', seat: r.state.speaker.seat, now: T0 + 2000 })
+    expect(last.effects.filter((e) => e.kind === 'voice').at(-1)).toEqual({
+      kind: 'voice',
+      policy: { muteAll: false, publishSeats: null, subscribeSeats: null },
+    })
+    for (const p of r.state.players) r.do({ type: 'TEAM_VOTE', seat: p.seat, approve: true, now: T0 + 3000 })
+    expect(r.state.phase).toBe('QUEST')
+  })
 })
 
 describe('随机合法动作模糊测试', () => {
@@ -428,6 +456,13 @@ describe('随机合法动作模糊测试', () => {
         return [{ type: 'TEAM_PICK', seat: s.leaderSeat, team: seats.slice(0, size), now }, { type: 'TIMEOUT', version: s.version, now }]
       }
       case 'TEAM_VOTE':
+        // 轮流发言进行中只能「说完了」或超时轮转，不能表决
+        if (s.speaker) {
+          return [
+            { type: 'SPEAKER_DONE', seat: s.speaker.seat, now },
+            { type: 'TIMEOUT', version: s.version, now },
+          ]
+        }
         return s.players
           .filter((p) => !(p.seat in s.teamVotes))
           .flatMap((p) => [

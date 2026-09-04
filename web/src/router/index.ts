@@ -41,6 +41,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/RulesView.vue'),
     meta: { title: '游戏规则' },
   },
+  {
+    path: '/records',
+    name: 'records',
+    component: () => import('@/views/RecordsView.vue'),
+    meta: { title: '我的战绩' },
+  },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
@@ -69,6 +75,11 @@ router.beforeEach((to) => {
 
   if ((to.name === 'game' || to.name === 'result') && !room.code) {
     return { path: '/' }
+  }
+
+  // 战绩绑定设备匿名账号：未设置资料的玩家先去引导页，完成后跳回
+  if (to.name === 'records' && !user.initialized) {
+    return { path: '/welcome', query: { redirect: '/records' } }
   }
 
   return true

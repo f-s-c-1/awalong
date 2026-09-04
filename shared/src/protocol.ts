@@ -61,6 +61,8 @@ export type ServerMsg =
   | { type: 'game.paused'; seat: number; nickname: string; deadline: number; ownerDecides: boolean }
   | { type: 'game.resumed' }
   | { type: 'game.over'; summary: MatchSummary; version: number }
+  /** 房主发起再来一局：对局被丢弃，客户端清空对局态回到大厅 */
+  | { type: 'game.reset' }
   | { type: 'phrase.shown'; seat: number; phraseId: string }
 
 export const PHRASES: Record<string, string> = {

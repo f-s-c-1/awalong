@@ -1,5 +1,7 @@
 # 单机、无域名场景：全部 host 网络，Caddy 只监听 443（80 被其他项目占用，用 TLS-ALPN 签证书）
-# 目录约定：/opt/awalong/{web,server,caddy,livekit.yaml,.env}
+# 目录约定：/opt/awalong/{web,server,caddy/Caddyfile,livekit.yaml,.env}
+# 注意：单文件 bind mount（如 livekit.yaml）被 scp/tar 覆盖后 inode 变化，容器仍看到旧文件，改完必须 --force-recreate；
+# Caddyfile 因此改为挂载整个 caddy 目录，覆盖后 caddy reload 即可生效
 services:
   caddy:
     image: caddy:2-alpine
@@ -8,7 +10,7 @@ services:
     network_mode: host
     env_file: .env
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy:/etc/caddy:ro
       - ./web:/srv/web:ro
       - caddy-data:/data
       - caddy-config:/config
@@ -25,8 +27,11 @@ services:
       HOST: 127.0.0.1
       PORT: "3210"
       NODE_ENV: production
+      # 用户与战绩（JSON Lines）落在宿主机 /opt/awalong/data，重启不丢
+      DATA_DIR: /data
     volumes:
       - ./server:/app:ro
+      - ./data:/data
     mem_limit: 200m
 
   livekit:

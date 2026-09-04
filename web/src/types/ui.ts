@@ -22,4 +22,14 @@ export interface RingSeat {
   mark?: MarkKind
   /** 正在说话（语音音浪） */
   speaking?: boolean
+  /** 亮票后的表决结果：true 同意 / false 反对 */
+  vote?: boolean
+  /** 金色呼吸光：轮流发言的当前发言者、组队阶段的队长 */
+  glow?: boolean
+  /** 等待中（任务出票尚未完成的队员）：沙漏角标 */
+  busy?: boolean
+  /** 头像旁的快捷短语气泡 */
+  bubble?: string
+  /** 压暗（刺杀阶段不可选的座位） */
+  dimmed?: boolean
 }

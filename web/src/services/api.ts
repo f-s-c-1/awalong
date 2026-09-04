@@ -1,5 +1,5 @@
-// REST 封装（与 server/src/http/routes.ts 一致）：匿名登录、我的资料、房间、语音凭证；自动携带 Bearer
-import type { RoomSync } from '@awalong/shared'
+// REST 封装（与 server/src/http/routes.ts 一致）：匿名登录、我的资料、房间、语音凭证、战绩；自动携带 Bearer
+import type { MatchRecord, MyMatchesResponse, RoomSync } from '@awalong/shared'
 import { local } from '@/utils/storage'
 
 const AUTH_KEY = 'avalon.auth'
@@ -197,5 +197,22 @@ export const api = {
   /** 语音接入凭证（LiveKit）；未配置语音时服务端返回 501 */
   voiceToken(profile?: AuthProfile): Promise<VoiceTokenInfo> {
     return withAuthRetry(() => request<VoiceTokenInfo>('POST', '/api/voice/token'), profile)
+  },
+
+  /** 我的战绩：统计 + 对局列表（按结束时间倒序，offset 分页），作废局不计入 */
+  myMatches(limit = 30, offset = 0, profile?: AuthProfile): Promise<MyMatchesResponse> {
+    const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    return withAuthRetry(
+      () => request<MyMatchesResponse>('GET', `/api/me/matches?${query.toString()}`),
+      profile,
+    )
+  },
+
+  /** 一局完整记录（全员身份 + 复盘时间线）；不存在时 404 且 code 为 MATCH_NOT_FOUND */
+  getMatch(id: string, profile?: AuthProfile): Promise<MatchRecord> {
+    return withAuthRetry(
+      () => request<MatchRecord>('GET', `/api/matches/${encodeURIComponent(id)}`),
+      profile,
+    )
   },
 }

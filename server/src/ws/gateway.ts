@@ -206,7 +206,10 @@ export class Gateway implements Transport {
         return
       case 'game.again': {
         if (room.status !== 'LOBBY') throw new GameError('WRONG_STATUS', '对局尚未结束')
+        if (room.ownerUid !== uid) throw new GameError('NOT_OWNER', '只有房主可以发起再来一局')
         this.games.discard(code)
+        // room.sync 不携带对局阶段，结算页需要这条消息才能带全员（含旁观）回到大厅
+        this.sendToUids(this.rooms.members(room), { type: 'game.reset' })
         this.broadcastRoom(code)
         return
       }

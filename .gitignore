@@ -9,3 +9,9 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+# 端到端脚本产物
+web/e2e/shots*/
+
+# 大厅等待音乐（bash scripts/fetch-music.sh 下载，清单 playlist.json 进仓库）
+web/public/music/*.mp3

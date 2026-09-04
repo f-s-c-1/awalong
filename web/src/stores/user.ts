@@ -66,6 +66,19 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
   }
 
+  /** 清除本机资料（昵称、头像），initialized 随之变为 false */
+  function clearProfile(): void {
+    nickname.value = ''
+    avatar.value = ''
+    local.remove(PROFILE_KEY)
+  }
+
+  /** 退出登录：丢弃凭证与资料，重新进入后会成为新玩家 */
+  function logout(): void {
+    clearAuth()
+    clearProfile()
+  }
+
   return {
     uid,
     token,
@@ -77,5 +90,7 @@ export const useUserStore = defineStore('user', () => {
     setProfile,
     ensureAuth,
     clearAuth,
+    clearProfile,
+    logout,
   }
 })

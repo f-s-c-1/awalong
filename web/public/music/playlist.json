@@ -1,0 +1,33 @@
+{
+  "tracks": [
+    {
+      "file": "the-old-tower-inn.mp3",
+      "title": "Medieval: The Old Tower Inn",
+      "artist": "RandomMind",
+      "license": "CC0 1.0",
+      "source": "https://opengameart.org/content/medieval-the-old-tower-inn"
+    },
+    {
+      "file": "the-bards-tale.mp3",
+      "title": "Medieval: The Bard's Tale",
+      "artist": "RandomMind",
+      "license": "CC0 1.0",
+      "source": "https://opengameart.org/content/medieval-the-bards-tale"
+    },
+    {
+      "file": "kings-feast.mp3",
+      "title": "Medieval: King's Feast",
+      "artist": "RandomMind",
+      "license": "CC0 1.0",
+      "source": "https://opengameart.org/content/medieval-kings-feast"
+    },
+    {
+      "file": "minstrel-dance.mp3",
+      "title": "Medieval: Minstrel Dance",
+      "artist": "RandomMind",
+      "license": "CC0 1.0",
+      "source": "https://opengameart.org/content/medieval-minstrel-dance"
+    }
+  ],
+  "version": "20260904"
+}

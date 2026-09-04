@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // 座位头像：头像圆 + 四角角标插槽（皇冠 / 剑徽 / 序号 / 对勾 / 断线 / 私人标记）
+// 对局态附加：亮票结果（右下 ✓/✗）、金色呼吸光（发言者 / 队长）、沙漏（出票中）、短语气泡、压暗
 import { computed } from 'vue'
 import type { MarkKind } from '@/types/ui'
 import { avatarById } from '@/assets/avatars'
@@ -27,6 +28,16 @@ const props = withDefaults(
     showName?: boolean
     /** 正在说话：右侧音浪 */
     speaking?: boolean
+    /** 亮票结果：true 同意 / false 反对；未定义不显示 */
+    vote?: boolean | null
+    /** 金色呼吸光 */
+    glow?: boolean
+    /** 等待中：右下沙漏 */
+    busy?: boolean
+    /** 头像上方的短语气泡 */
+    bubble?: string
+    /** 压暗（当前不可选） */
+    dimmed?: boolean
   }>(),
   {
     nickname: '',
@@ -40,6 +51,11 @@ const props = withDefaults(
     mark: undefined,
     showName: true,
     speaking: false,
+    vote: undefined,
+    glow: false,
+    busy: false,
+    bubble: '',
+    dimmed: false,
   },
 )
 
@@ -50,7 +66,11 @@ const classes = computed(() => ({
   'sa--selected': props.selected,
   'sa--leader': props.isLeader,
   'sa--empty': props.empty,
+  'sa--glow': props.glow,
+  'sa--dimmed': props.dimmed,
 }))
+
+const hasVote = computed(() => props.vote === true || props.vote === false)
 
 const circleStyle = computed(() =>
   props.empty ? undefined : { backgroundColor: avatarById(props.avatar).color },
@@ -112,7 +132,29 @@ const displayName = computed(() => {
         <span v-if="!empty" class="sa__no" aria-hidden="true">{{ seat }}</span>
       </slot>
 
-      <slot name="bottom-right" />
+      <slot name="bottom-right">
+        <span
+          v-if="hasVote"
+          class="sa__vote"
+          :class="vote ? 'sa__vote--yes' : 'sa__vote--no'"
+          data-test="vote-badge"
+          :data-seat="seat"
+          :data-approve="vote ? 'true' : 'false'"
+          :aria-label="vote ? '同意' : '反对'"
+        >
+          <svg viewBox="0 0 10 10" fill="none" stroke="#EDE8F2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path v-if="vote" d="M2 5.2 L4.2 7.4 L8 3" />
+            <path v-else d="M3 3l4 4M7 3l-4 4" />
+          </svg>
+        </span>
+        <span v-else-if="busy && !empty" class="sa__busy" aria-label="出票中">
+          <svg viewBox="0 0 10 10" fill="none" stroke="#1A1408" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 1.5h4M3 8.5h4M3.5 1.5v1.6L5 5 3.5 6.9v1.6M6.5 1.5v1.6L5 5l1.5 1.9v1.6" />
+          </svg>
+        </span>
+      </slot>
+
+      <span v-if="bubble && !empty" class="sa__bubble" role="status">{{ bubble }}</span>
 
       <svg v-if="speaking && !empty" class="sa__wave" viewBox="0 0 14 14" fill="none" aria-hidden="true">
         <circle cx="2.5" cy="7" r="1.5" fill="#C9A227" />
@@ -281,6 +323,123 @@ const displayName = computed(() => {
   color: var(--muted);
 }
 
+/* 亮票结果：右下角蓝 ✓ / 红 ✗ */
+.sa__vote {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 1px solid var(--bg);
+}
+
+.sa__vote svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.sa__vote--yes {
+  background: var(--blue);
+}
+
+.sa__vote--no {
+  background: var(--red);
+}
+
+/* 出票中：金色沙漏 */
+.sa__busy {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 1px solid var(--bg);
+  animation: sa-busy 1.6s ease-in-out infinite;
+}
+
+.sa__busy svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@keyframes sa-busy {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 金色呼吸光：发言者 / 组队中的队长 */
+.sa--glow .sa__circle {
+  border-color: var(--gold);
+  animation: sa-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes sa-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 0.6rem rgba(201, 162, 39, 0);
+  }
+}
+
+.sa--dimmed .sa__circle,
+.sa--dimmed .sa__name {
+  opacity: 0.4;
+}
+
+/* 快捷短语气泡：头像上方居中，3 秒后由父组件移除 */
+.sa__bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.6rem);
+  z-index: 2;
+  max-width: 12rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.8rem;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: sa-bubble 200ms ease;
+}
+
+.sa__bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  border: 0.4rem solid transparent;
+  border-top-color: var(--gold);
+  transform: translateX(-50%);
+}
+
+@keyframes sa-bubble {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .sa__wave {
   position: absolute;
   right: -1.6rem;
@@ -301,7 +460,10 @@ const displayName = computed(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sa__wave {
+  .sa__wave,
+  .sa__busy,
+  .sa--glow .sa__circle,
+  .sa__bubble {
     animation: none;
   }
 }

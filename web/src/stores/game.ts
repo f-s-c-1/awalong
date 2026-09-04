@@ -1,11 +1,13 @@
 // 对局状态：game.sync（视角过滤后的 ClientGameState）+ game.secret（本人身份与视野）
 // + game.over（MatchSummary）+ 服务端时钟偏移（heartbeat.ack / phase.change / game.sync 校准）
+// + 一次性事件（亮票 / 任务揭晓 / 阶段横幅 / 短语气泡），供桌面播放动效
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type {
   ClientGameState,
   MatchSummary,
   Phase,
+  QuestResult,
   SecretInfo,
   VoicePolicy,
 } from '@awalong/shared'
@@ -19,12 +21,45 @@ export interface PausedInfo {
   ownerDecides: boolean
 }
 
+/** 任务揭晓事件：quest.reveal 携带的洗乱票序，game.sync 到达后状态里已清空，只能在这里保留 */
+export interface QuestRevealEvent {
+  cards: QuestResult[]
+  failed: boolean
+  version: number
+}
+
+export interface TeamRevealEvent {
+  votes: Record<number, boolean>
+  approved: boolean
+  version: number
+}
+
+/** 阶段横幅事件：以 game.sync 里的完整状态为准，避免 phase.change 先到时轮次数字过期 */
+export interface PhaseEvent {
+  phase: Phase
+  questIndex: number
+  voteRound: number
+  version: number
+}
+
+export interface PhraseShown {
+  phraseId: string
+  at: number
+}
+
 export const useGameStore = defineStore('game', () => {
   const state = ref<ClientGameState | null>(null)
   const secret = ref<SecretInfo | null>(null)
   const summary = ref<MatchSummary | null>(null)
   const voicePolicy = ref<VoicePolicy | null>(null)
   const paused = ref<PausedInfo | null>(null)
+  const questRevealEvent = ref<QuestRevealEvent | null>(null)
+  const teamRevealEvent = ref<TeamRevealEvent | null>(null)
+  const phaseEvent = ref<PhaseEvent | null>(null)
+  /** 座位 → 最近一条快捷短语（气泡 3 秒后由界面自行隐藏） */
+  const phrases = ref<Record<number, PhraseShown>>({})
+  /** 最近一次通过 game.sync 宣告过横幅的阶段 */
+  let announcedPhase: Phase | null = null
   /** 服务端时间 - 本机时间（毫秒），倒计时统一按服务端时钟 */
   const serverOffset = ref(0)
 
@@ -61,6 +96,28 @@ export const useGameStore = defineStore('game', () => {
     // 新一局开始（再来一局）时清掉旧结算与暂停提示
     if (next.phase !== 'GAME_OVER') summary.value = null
     if (next.phase === 'LOBBY') paused.value = null
+    if (next.phase !== announcedPhase) {
+      announcedPhase = next.phase
+      phaseEvent.value = {
+        phase: next.phase,
+        questIndex: next.questIndex,
+        voteRound: next.voteRound,
+        version: next.version,
+      }
+    }
+  }
+
+  /** 房主再来一局：保留玩家表但阶段回到大厅，各页面据此返回房间 */
+  function backToLobby(): void {
+    if (state.value) state.value.phase = 'LOBBY'
+    secret.value = null
+    summary.value = null
+    voicePolicy.value = null
+    paused.value = null
+    questRevealEvent.value = null
+    teamRevealEvent.value = null
+    phrases.value = {}
+    announcedPhase = 'LOBBY'
   }
 
   function reset(): void {
@@ -69,6 +126,11 @@ export const useGameStore = defineStore('game', () => {
     summary.value = null
     voicePolicy.value = null
     paused.value = null
+    questRevealEvent.value = null
+    teamRevealEvent.value = null
+    phaseEvent.value = null
+    phrases.value = {}
+    announcedPhase = null
   }
 
   const offs = [
@@ -84,16 +146,22 @@ export const useGameStore = defineStore('game', () => {
       state.value.version = msg.version
     }),
     ws.on('team.reveal', (msg) => {
+      teamRevealEvent.value = { votes: msg.votes, approved: msg.approved, version: msg.version }
       if (!state.value) return
       state.value.teamVotes = msg.votes
       state.value.teamVotedSeats = []
       state.value.version = msg.version
     }),
     ws.on('quest.reveal', (msg) => {
+      questRevealEvent.value = { cards: msg.cards, failed: msg.failed, version: msg.version }
       if (!state.value) return
       state.value.questReveal = msg.cards
       state.value.version = msg.version
     }),
+    ws.on('phrase.shown', (msg) => {
+      phrases.value = { ...phrases.value, [msg.seat]: { phraseId: msg.phraseId, at: Date.now() } }
+    }),
+    ws.on('game.reset', () => backToLobby()),
     ws.on('game.over', (msg) => {
       summary.value = msg.summary
       if (state.value) {
@@ -139,6 +207,10 @@ export const useGameStore = defineStore('game', () => {
     summary,
     voicePolicy,
     paused,
+    questRevealEvent,
+    teamRevealEvent,
+    phaseEvent,
+    phrases,
     serverOffset,
     phase,
     deadline,

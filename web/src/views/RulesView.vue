@@ -1,12 +1,26 @@
 <script setup lang="ts">
 // 规则说明：阵营与胜负 / 一局流程 / 角色一览 / 人数配置 / 推荐板子 / 任务队员数（数据表全部来自 @awalong/shared）
+// 末尾「音乐来源」读取 public/music/playlist.json，清单缺失时整节不渲染
+import { onMounted, ref } from 'vue'
 import { RECOMMENDED_ROLES, ROLE_NAMES, needsTwoFails, sideOf } from '@awalong/shared'
 import type { RoleId, Side } from '@awalong/shared'
 import { useRouter } from 'vue-router'
+import { fetchPlaylist } from '@/services/music'
+import type { Track } from '@/services/music'
 import { PLAYER_COUNTS, playerConfigFor, questSizesFor } from '@/utils/rules'
 import { ROLE_INTRO, ROLE_ORDER } from '@/utils/roles'
 
 const router = useRouter()
+
+const musicTracks = ref<Track[]>([])
+
+onMounted(async () => {
+  try {
+    musicTracks.value = await fetchPlaylist()
+  } catch {
+    // 清单未部署：不显示音乐来源
+  }
+})
 
 const steps = [
   {
@@ -182,6 +196,17 @@ function back(): void {
         <li>满员开局后进入者为旁观者，只能看到公开信息</li>
         <li>私人标记只保存在本机，对局结束自动清除</li>
       </ul>
+    </section>
+
+    <section v-if="musicTracks.length" class="rules__section" aria-labelledby="music-title">
+      <h2 id="music-title" class="section-title">音乐来源</h2>
+      <ul class="credits">
+        <li v-for="track in musicTracks" :key="track.file" class="credits__item">
+          <a class="credits__link" :href="track.source" target="_blank" rel="noopener noreferrer">{{ track.title }}</a>
+          <span class="credits__meta">— {{ track.artist }}（{{ track.license }}）</span>
+        </li>
+      </ul>
+      <p class="rules__note">以上曲目以 CC0 协议发布，无需署名，在此致谢作者</p>
     </section>
   </main>
 </template>
@@ -454,6 +479,41 @@ function back(): void {
   color: var(--muted);
 }
 
+.credits {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.credits__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.6rem;
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+/* 来源链接：行高撑到 4.4rem 保证触控面 */
+.credits__link,
+.credits__meta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 4.4rem;
+}
+
+.credits__link {
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+  text-decoration-color: var(--gold-line);
+}
+
+.credits__meta {
+  color: var(--muted);
+}
+
 /* 平板 / PC ≥768px：居中 56rem 单列（由 .page--narrow 提供），正文字号提到 13px 以上 */
 @media (min-width: 768px) {
   .rules {
@@ -485,7 +545,8 @@ function back(): void {
   }
 
   .table,
-  .notes {
+  .notes,
+  .credits__item {
     font-size: 1.3rem;
   }
 }
@@ -581,6 +642,10 @@ function back(): void {
   .notes {
     font-size: 1.4rem;
     gap: 1rem;
+  }
+
+  .credits__item {
+    font-size: 1.4rem;
   }
 }
 </style>

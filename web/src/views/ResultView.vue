@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // 结算页占位：胜负 + 胜因 + 全员身份（MatchSummary）；完整的复盘时间线与战报长图后续接入
-import { computed, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { sideOf } from '@awalong/shared'
 import type { RoleId } from '@awalong/shared'
 import SeatAvatar from '@/components/SeatAvatar.vue'
+import * as sfx from '@/services/sfx'
 import { ws } from '@/services/ws'
 import { useGameStore } from '@/stores/game'
 import { useRoomStore } from '@/stores/room'
@@ -42,8 +43,18 @@ const merlinSeat = computed(() => {
 })
 
 function playAgain(): void {
+  sfx.play('tap')
   ws.send({ type: 'game.again' })
 }
+
+// 进入结算：按本人阵营播放胜利 / 失败音效（旁观或作废局播放中性阶段音）
+onMounted(() => {
+  const side = game.secret?.side
+  const w = winner.value
+  if (!w || !side) sfx.play('phase')
+  else sfx.play(w === side ? 'win' : 'lose')
+  sfx.vibrate(w && side && w === side ? [60, 40, 60] : 80)
+})
 
 function backToRoom(): void {
   void router.replace(room.code ? `/r/${room.code}` : '/')
@@ -79,7 +90,7 @@ watch(
         <svg class="result__shield" viewBox="0 0 40 44" fill="none" aria-hidden="true">
           <path d="M20 3 L35 9 V21 C35 33 20 41 20 41 C20 41 5 33 5 21 V9 Z" />
         </svg>
-        <h1 class="result__title serif">{{ title }}</h1>
+        <h1 class="result__title serif" data-test="result-title">{{ title }}</h1>
         <p class="result__reason">{{ reason }}</p>
       </header>
 
@@ -120,9 +131,11 @@ watch(
         </ul>
       </section>
 
+      <RouterLink class="result__records" to="/records">查看我的战绩</RouterLink>
+
       <footer class="result__footer">
-        <button v-if="isOwner" type="button" class="btn btn-primary" @click="playAgain">再来一局</button>
-        <button v-else type="button" class="btn btn-primary" @click="backToRoom">返回大厅</button>
+        <button v-if="isOwner" type="button" class="btn btn-primary" data-test="play-again" @click="playAgain">再来一局</button>
+        <button v-else type="button" class="btn btn-primary" data-test="back-room" @click="backToRoom">返回大厅</button>
         <button type="button" class="btn btn-secondary" @click="leave">退出房间</button>
       </footer>
     </template>
@@ -251,12 +264,26 @@ watch(
   color: var(--red);
 }
 
+/* 战绩入口：文字链接，占据按钮区上方一行并把按钮区推到底部 */
+.result__records {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: 4.4rem;
+  margin-top: auto;
+  padding: 2.4rem 1.2rem 0;
+  font-size: 1.3rem;
+  letter-spacing: 0.2rem;
+  color: var(--gold);
+  transition: color 200ms ease;
+}
+
 .result__footer {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  margin-top: auto;
-  padding-top: 2.4rem;
+  padding-top: 1.2rem;
 }
 
 .result__empty {
@@ -279,6 +306,12 @@ watch(
   min-height: 4.4rem;
   font-size: 1.3rem;
   letter-spacing: 0.2rem;
+}
+
+@media (hover: hover) {
+  .result__records:hover {
+    color: var(--gold-hover);
+  }
 }
 
 /* 平板 / PC ≥768px：居中 56rem 单列（由 .page--narrow 提供），两个底部按钮并排 */

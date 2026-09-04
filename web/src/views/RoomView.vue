@@ -4,11 +4,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { defaultSettings } from '@awalong/shared'
 import type { RoleId, RoomSettings } from '@awalong/shared'
+import MusicBar from '@/components/MusicBar.vue'
 import SeatRing from '@/components/SeatRing.vue'
 import SettingsSheet from '@/components/SettingsSheet.vue'
+import SoundToggle from '@/components/SoundToggle.vue'
 import VoiceBar from '@/components/VoiceBar.vue'
 import { api, ApiError } from '@/services/api'
 import { inviteText, renderInviteCard } from '@/services/inviteCard'
+import * as music from '@/services/music'
 import { preloadVoice } from '@/services/voice'
 import { ws } from '@/services/ws'
 import { useGameStore } from '@/stores/game'
@@ -246,12 +249,33 @@ function leave(): void {
 watch(
   () => game.inGame,
   (started) => {
-    if (started) void router.replace('/game')
+    if (started) {
+      music.stop()
+      void router.replace('/game')
+    }
   },
   { immediate: true },
 )
 
+// 等待音乐：大厅等人期间轻声播放，开局 / 离开即停；首个手势解锁音频后自动补启
+watch(
+  () => room.synced && room.status === 'LOBBY' && !game.inGame,
+  (waiting) => {
+    if (waiting) music.start()
+    else music.stop()
+  },
+  { immediate: true },
+)
+
+// 语音开麦时压低音乐，关麦恢复
+watch(
+  () => voice.connected && voice.micEnabled,
+  (on) => music.setDucked(on),
+  { immediate: true },
+)
+
 onMounted(() => {
+  void music.init()
   nowTimer = window.setInterval(() => {
     now.value = Date.now()
   }, 500)
@@ -262,6 +286,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopOpen?.()
+  music.stop()
   if (copiedTimer !== undefined) window.clearTimeout(copiedTimer)
   if (nowTimer !== undefined) window.clearInterval(nowTimer)
 })
@@ -280,6 +305,7 @@ onBeforeUnmount(() => {
         <strong class="room__code serif" :aria-label="`房间码 ${code}`">{{ spacedCode }}</strong>
       </div>
       <div class="room__tools">
+        <SoundToggle class="room__sound" />
         <button v-if="isOwner && inLobby" type="button" class="room__tool room__tool--gold" @click="settingsOpen = true">设置</button>
         <button type="button" class="room__tool" @click="copyLink">{{ copied ? '已复制' : '复制' }}</button>
         <button type="button" class="room__tool" :disabled="inviteBusy" @click="invite">邀请好友</button>
@@ -310,6 +336,8 @@ onBeforeUnmount(() => {
         <VoiceBar />
         <span class="room__voice-tip">进入房间即可语音，开局后按阶段自动静音</span>
       </section>
+
+      <MusicBar class="room__music" />
 
       <section class="room__roles" aria-labelledby="roles-title">
         <h2 id="roles-title" class="section-title">本局角色</h2>
@@ -410,8 +438,14 @@ onBeforeUnmount(() => {
 
 .room__tools {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
   margin-left: auto;
+}
+
+.room__sound {
+  width: 3.6rem;
+  height: 3.6rem;
 }
 
 .room__tool {
@@ -483,6 +517,10 @@ onBeforeUnmount(() => {
 .room__voice-tip {
   font-size: 1.1rem;
   color: var(--small);
+}
+
+.room__music {
+  margin-top: 1rem;
 }
 
 .room__roles {
@@ -626,16 +664,17 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 桌面 ≥1024px：双栏——左栏座位环，右栏依次为房间码卡片 / 语音 / 本局角色 / 准备或开始
+/* 桌面 ≥1024px：双栏——左栏座位环，右栏依次为房间码卡片 / 语音 / 等待音乐 / 本局角色 / 准备或开始
    DOM 顺序不变，仅用 grid-template-areas 重排 */
 @media (min-width: 1024px) {
   .room {
     display: grid;
     grid-template-columns: var(--ring-lg) minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
     grid-template-areas:
       'ring head'
       'ring voice'
+      'ring music'
       'ring roles'
       'ring footer';
     column-gap: calc(var(--col-gap) * 1.5);
@@ -651,8 +690,9 @@ onBeforeUnmount(() => {
     --seat-ring-center: 16rem;
   }
 
-  /* 右栏区块间距用 margin 而非 row-gap：语音区不渲染（旁观者）时不会留下空行 */
+  /* 右栏区块间距用 margin 而非 row-gap：语音区（旁观者）/ 音乐条（清单缺失）不渲染时不会留下空行 */
   .room__voice,
+  .room__music,
   .room__roles,
   .room__footer {
     margin-top: 2rem;
@@ -711,6 +751,10 @@ onBeforeUnmount(() => {
 
   .room__voice {
     grid-area: voice;
+  }
+
+  .room__music {
+    grid-area: music;
   }
 
   .room__roles {

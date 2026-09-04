@@ -31,3 +31,26 @@ awalong/
 ├── shared/    # 前后端共享协议类型
 └── deploy/    # Docker Compose / nginx / livekit 配置
 ```
+
+## 本地开发与测试
+
+```bash
+pnpm install
+pnpm dev:server                 # Fastify + ws，默认 :3000（PORT 覆盖端口；DATA_DIR=./data 时用户与战绩落盘，否则只存内存）
+pnpm dev:web                    # Vite，默认 :5173，/api 与 /ws 代理到 :3000
+pnpm -r typecheck && pnpm -r test   # 类型检查 + 规则表 / 状态机 / WebSocket 集成测试
+bash scripts/fetch-music.sh         # 下载大厅等待音乐（OpenGameArt · RandomMind · CC0）到 web/public/music/，mp3 不进仓库
+```
+
+等待音乐不随 `deploy/host/publish.sh` 发布包上传，首次部署或曲目变更时手动同步一次：`scp -r web/public/music root@107.173.49.32:/opt/awalong/web/`。服务器缺少该目录时大厅自动退回合成氛围垫。
+
+多人端到端回归（Playwright，使用本机已装的 Chrome，每名玩家一个独立浏览器上下文，完整跑通建房 → 发牌 → 组队 → 表决 → 出票 → 刺杀 → 结算）：
+
+```bash
+pnpm --filter @awalong/web test:e2e -- --players 5
+# 分支用例：--evil-fails 1（第 1 次任务出现失败票）--reject-first（首次组队全员反对）
+#           --reject-all（五次流局）--again（再来一局）--speech turns（轮流发言）
+#           --base http://localhost:5174（前端跑在其他端口时）--headed（有头观察）
+```
+
+截图输出在 `web/e2e/shots/`，桌面页的 `data-test` 锚点是脚本与界面之间的契约，改交互时请同步维护。

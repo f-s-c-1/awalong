@@ -155,6 +155,10 @@ describe('五人局完整流程（WebSocket）', () => {
     expect(owner.room?.ownerUid).toBe(owner.uid)
     expect(owner.room?.mySeat).toBe(1)
 
+    // 默认轮流发言会在表决前插入发言轮次，本用例改为自由发言以聚焦流程
+    owner.send({ type: 'room.settings', settings: { speechMode: 'free' } })
+    await owner.waitFor((m) => m.type === 'room.sync' && m.room.settings.speechMode === 'free', '发言模式')
+
     for (const c of others) c.send({ type: 'room.ready', ready: true })
     await owner.waitFor((m) => m.type === 'room.sync' && m.room.seats.filter((s) => s.ready).length === 4)
 
@@ -211,6 +215,38 @@ describe('五人局完整流程（WebSocket）', () => {
     }
     await owner.waitPhase('GAME_OVER')
     expect(owner.state!.revealedRoles).not.toBeNull()
+    await owner.waitFor((m) => m.type === 'room.sync' && m.room.status === 'LOBBY')
+
+    // 战绩已落库：每人一条，视角字段正确，单局详情含全员
+    interface MineResp {
+      total: number
+      stats: { games: number; wins: number }
+      items: { id: string; mySeat: number; myRole: string; won: boolean }[]
+    }
+    const mine = await api<MineResp>('/api/me/matches', undefined, assassin.token)
+    expect(mine.total).toBe(1)
+    expect(mine.stats.games).toBe(1)
+    expect(mine.stats.wins).toBe(1)
+    expect(mine.items[0]!.myRole).toBe('ASSASSIN')
+    expect(mine.items[0]!.won).toBe(true)
+    const merlinMine = await api<MineResp>('/api/me/matches', undefined, merlin.token)
+    expect(merlinMine.items[0]!.won).toBe(false)
+    const record = await api<{ id: string; players: unknown[]; roles: Record<string, string> }>(
+      '/api/matches/' + mine.items[0]!.id,
+      undefined,
+      owner.token,
+    )
+    expect(record.players).toHaveLength(5)
+    expect(Object.keys(record.roles)).toHaveLength(5)
+    await expect(api('/api/matches/m_none', undefined, owner.token)).rejects.toThrow(/404/)
+    await expect(api('/api/me/matches')).rejects.toThrow(/401/)
+
+    // 再来一局：只有房主能发起，全员收到 game.reset 回大厅
+    const guest = others[0]!
+    guest.send({ type: 'game.again' })
+    await guest.waitFor((m) => m.type === 'error' && m.code === 'NOT_OWNER', '非房主再来一局被拒')
+    owner.send({ type: 'game.again' })
+    for (const c of clients) await c.waitFor((m) => m.type === 'game.reset', 'game.reset')
     await owner.waitFor((m) => m.type === 'room.sync' && m.room.status === 'LOBBY')
 
     for (const c of clients) c.close()

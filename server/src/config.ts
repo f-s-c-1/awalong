@@ -3,6 +3,8 @@ export const config = {
   host: process.env.HOST ?? '0.0.0.0',
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-change-me',
   corsOrigin: process.env.CORS_ORIGIN ?? true,
+  /** 用户与战绩的持久化目录（JSON Lines）；为空则只存内存 */
+  dataDir: process.env.DATA_DIR ?? '',
   /** 大厅阶段断线保座时长 */
   lobbyDisconnectMs: 120_000,
   /** 游戏中主动退出后等待重连时长 */

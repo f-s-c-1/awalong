@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 阶段信息条：左侧小字 + 主文案，右侧倒计时（按服务端时钟；最后 5 秒变红并每秒轻震）
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import * as sfx from '@/services/sfx'
 import { useGameStore } from '@/stores/game'
 
 const props = withDefaults(
@@ -32,16 +33,12 @@ const urgent = computed(
   () => remaining.value !== null && remaining.value > 0 && remaining.value <= URGENT_SECONDS,
 )
 
-function vibrate(ms: number): void {
-  try {
-    navigator.vibrate?.(ms)
-  } catch {
-    // iOS 不支持则静默
-  }
-}
-
+// 最后 5 秒：每秒轻震 + 短促滴答（静音开关同时控制两者）
 watch(remaining, (sec, prev) => {
-  if (urgent.value && sec !== prev) vibrate(50)
+  if (urgent.value && sec !== prev) {
+    sfx.vibrate(50)
+    sfx.play('tick')
+  }
 })
 
 onMounted(() => {

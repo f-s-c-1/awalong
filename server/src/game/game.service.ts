@@ -1,4 +1,4 @@
-import type { ServerMsg, VoicePolicy } from '@awalong/shared'
+import type { MatchSummary, ServerMsg, VoicePolicy } from '@awalong/shared'
 import { GameError, createGame, reduce, type Action, type Effect } from './fsm'
 import { projectFor, secretFor } from './projection'
 import { cryptoRng, type Rng } from './rng'
@@ -15,6 +15,8 @@ export interface Transport {
 export interface GameHooks {
   /** 语音权限策略变化（LiveKit 联动） */
   onVoicePolicy?: (room: Room, policy: VoicePolicy, players: PlayerState[]) => void
+  /** 对局结束（含作废）：用于战绩落库 */
+  onGameOver?: (room: Room, summary: MatchSummary, players: PlayerState[]) => void
 }
 
 /**
@@ -136,6 +138,7 @@ export class GameService {
           break
         case 'gameOver':
           this.transport.sendToUids(uids, { type: 'game.over', summary: effect.summary, version: state.version })
+          this.hooks.onGameOver?.(room, effect.summary, state.players)
           this.rooms.markLobby(room, now)
           roomChanged = true
           break

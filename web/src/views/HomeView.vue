@@ -1,11 +1,17 @@
 <script setup lang="ts">
 // 封面首页：圣剑徽章对称构图（星幕 + 环形圆桌纹 + 竖剑徽章），忠实还原 Main 画板
-import { onMounted, ref } from 'vue'
+// 按钮区上方显示当前名号（头像 + 昵称），可修改资料或退出登录
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { defaultSettings } from '@awalong/shared'
 import type { RoomSettings } from '@awalong/shared'
+import { avatarById } from '@/assets/avatars'
+import AvatarIcon from '@/components/AvatarIcon.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import SettingsSheet from '@/components/SettingsSheet.vue'
 import { api, ApiError, loadAuth } from '@/services/api'
+import { ws } from '@/services/ws'
+import { useGameStore } from '@/stores/game'
 import { useRoomStore } from '@/stores/room'
 import { useUserStore } from '@/stores/user'
 
@@ -13,6 +19,7 @@ const router = useRouter()
 const route = useRoute()
 const user = useUserStore()
 const room = useRoomStore()
+const game = useGameStore()
 
 const creating = ref(false)
 /** 建房前的对局设置面板 */
@@ -21,6 +28,27 @@ const settingsInitial = defaultSettings(8)
 const error = ref('')
 /** 服务端记录的所在房间：关掉页面后重新打开可直接回去 */
 const activeRoom = ref<string | null>(null)
+/** 退出登录二次确认 */
+const logoutOpen = ref(false)
+
+const avatarColor = computed(() => avatarById(user.avatar).color)
+
+/** 修改名号：引导页会保留 uid 并把新资料同步到服务端 */
+function editProfile(): void {
+  void router.push({ path: '/welcome', query: { redirect: '/' } })
+}
+
+/** 退出登录：离开房间并断开连接，清空本机身份与资料，重新设定名号 */
+function confirmLogout(): void {
+  logoutOpen.value = false
+  if (ws.connected) ws.send({ type: 'room.leave' })
+  ws.disconnect()
+  room.reset()
+  game.reset()
+  user.logout()
+  activeRoom.value = null
+  void router.push('/welcome')
+}
 
 /** 点击「创建房间」：先选人数与板子，确认后再建房 */
 async function createRoom(): Promise<void> {
@@ -141,6 +169,15 @@ onMounted(() => {
     </ul>
 
     <div class="home__actions">
+      <div v-if="user.initialized" class="home__profile" aria-label="当前名号">
+        <span class="home__avatar" :style="{ backgroundColor: avatarColor }" aria-hidden="true">
+          <AvatarIcon :id="user.avatar" />
+        </span>
+        <span class="home__nick">{{ user.nickname }}</span>
+        <button type="button" class="home__profile-btn" aria-label="修改名号" @click="editProfile">修改</button>
+        <span class="home__dot" aria-hidden="true"></span>
+        <button type="button" class="home__profile-btn" @click="logoutOpen = true">退出登录</button>
+      </div>
       <RouterLink v-if="activeRoom" class="home__resume" :to="`/r/${activeRoom}`">
         回到房间 {{ activeRoom }}
       </RouterLink>
@@ -159,10 +196,20 @@ onMounted(() => {
 
     <SettingsSheet :open="settingsOpen" :initial="settingsInitial" mode="create" @confirm="confirmCreate" @close="settingsOpen = false" />
 
+    <ConfirmDialog
+      :open="logoutOpen"
+      title="退出登录？"
+      text="将清除本机的名号与战绩身份，重新进入后会成为新玩家"
+      confirm-text="退出登录"
+      danger
+      @confirm="confirmLogout"
+      @cancel="logoutOpen = false"
+    />
+
     <nav class="home__links" aria-label="更多">
       <RouterLink class="home__link" to="/rules">游戏规则</RouterLink>
       <span class="home__dot" aria-hidden="true"></span>
-      <span class="home__link home__link--soon" aria-disabled="true" title="即将上线">我的战绩</span>
+      <RouterLink class="home__link" to="/records">我的战绩</RouterLink>
     </nav>
   </main>
 </template>
@@ -281,6 +328,59 @@ onMounted(() => {
   padding-top: 3.2rem;
 }
 
+/* 名号行：头像小圆 + 昵称 + 修改 / 退出登录 */
+.home__profile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  min-height: 4.4rem;
+  font-size: 1.3rem;
+  color: var(--muted);
+}
+
+.home__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text);
+}
+
+.home__avatar svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.home__nick {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.home__profile-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 4.4rem;
+  padding: 0 0.6rem;
+  border-radius: 0.6rem;
+  font-size: 1.3rem;
+  letter-spacing: 0.1rem;
+  color: var(--gold);
+  transition: color 200ms ease, background-color 200ms ease;
+}
+
+.home__profile-btn:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .home__resume {
   display: inline-flex;
   align-items: center;
@@ -321,9 +421,15 @@ a.home__link:focus-visible {
   color: var(--gold);
 }
 
-.home__link--soon {
-  opacity: 0.6;
-  cursor: default;
+@media (hover: hover) {
+  .home__profile-btn {
+    transition-duration: 150ms;
+  }
+
+  .home__profile-btn:hover {
+    color: var(--gold-hover);
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
 
 .home__dot {
@@ -422,8 +528,20 @@ a.home__link:focus-visible {
   }
 
   .home__resume,
-  .home__link {
+  .home__link,
+  .home__profile,
+  .home__profile-btn {
     font-size: 1.5rem;
+  }
+
+  .home__avatar {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+
+  .home__avatar svg {
+    width: 1.7rem;
+    height: 1.7rem;
   }
 
   .home__links {
@@ -465,6 +583,7 @@ a.home__link:focus-visible {
     width: 24rem;
   }
 
+  .home__profile,
   .home__resume,
   .home__error {
     flex-basis: 100%;

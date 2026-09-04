@@ -1,7 +1,9 @@
 /**
- * 程序化合成音效：零素材、零请求，用 Web Audio 振荡器 + 噪声 + 包络生成。
- * iOS 微信要求首次用户手势后才能出声，调用 unlock() 于任意点击回调中。
- * 后续如换真实音频文件，只需改 play() 内部实现，调用方不变。
+ * 程序化合成音效与等待音乐：零素材、零请求，用 Web Audio 振荡器 + 噪声 + 包络生成。
+ * iOS 微信要求首次用户手势后才能出声，installGestureUnlock() 在首个手势时解锁，
+ * 等待音乐（startAmbient）会在解锁后自动补启。静音开关同时管音效、音乐与振动。
+ * 大厅真实曲目由 music.ts 播放（自托管 CC0 mp3），本文件的合成氛围垫仅在曲目清单缺失时兜底；
+ * onGesture() 把手势同步转发给 music.ts，使 audio.play() 能在手势处理器内直接调用。
  */
 
 export type SfxName =
@@ -36,6 +38,8 @@ export function isMuted(): boolean {
   return muted
 }
 
+const muteListeners = new Set<(muted: boolean) => void>()
+
 export function setMuted(value: boolean): void {
   muted = value
   try {
@@ -43,12 +47,75 @@ export function setMuted(value: boolean): void {
   } catch {
     /* 无存储环境忽略 */
   }
+  if (value) teardownAmbient()
+  else if (ambientWanted) startAmbient()
+  muteListeners.forEach((cb) => cb(value))
+}
+
+/** 订阅静音开关变化（多处开关按钮同步显示），返回取消函数 */
+export function onMutedChange(cb: (muted: boolean) => void): () => void {
+  muteListeners.add(cb)
+  return () => {
+    muteListeners.delete(cb)
+  }
+}
+
+const unlockListeners = new Set<() => void>()
+
+/** 音频上下文进入可播放状态时回调（等待音乐据此补启） */
+export function onUnlock(cb: () => void): () => void {
+  unlockListeners.add(cb)
+  return () => {
+    unlockListeners.delete(cb)
+  }
 }
 
 /** 在用户手势回调里调用，解锁 AudioContext */
 export function unlock(): void {
   const c = getCtx()
-  if (c && c.state === 'suspended') void c.resume()
+  if (!c) return
+  if (c.state === 'running') {
+    unlockListeners.forEach((cb) => cb())
+    return
+  }
+  void c
+    .resume()
+    .then(() => {
+      if (c.state === 'running') unlockListeners.forEach((cb) => cb())
+    })
+    .catch(() => undefined)
+}
+
+const gestureListeners = new Set<() => void>()
+
+/**
+ * 订阅用户手势：回调在 pointerdown / pointerup / keydown 处理器内同步执行，
+ * iOS / 微信要求 HTMLMediaElement.play() 必须直接在手势处理器里调用，异步补启会被拒绝。返回取消函数
+ */
+export function onGesture(cb: () => void): () => void {
+  gestureListeners.add(cb)
+  return () => {
+    gestureListeners.delete(cb)
+  }
+}
+
+let gestureInstalled = false
+
+/**
+ * 全局监听首个手势解锁音频；切后台再回来被系统中断时，下一次手势会再次解锁。
+ * 触屏的 pointerdown 不算用户激活（按 HTML 规范只有鼠标的 pointerdown 与非鼠标的 pointerup 算），
+ * 因此同时监听 pointerup，保证 onGesture 回调里的 play() 在手机上也能成功
+ */
+export function installGestureUnlock(): void {
+  if (gestureInstalled || typeof document === 'undefined') return
+  gestureInstalled = true
+  const handler = (): void => {
+    unlock()
+    gestureListeners.forEach((cb) => cb())
+  }
+  document.addEventListener('pointerdown', handler, { passive: true })
+  document.addEventListener('pointerup', handler, { passive: true })
+  document.addEventListener('keydown', handler)
 }
 
 function getCtx(): AudioContext | null {
@@ -187,9 +254,131 @@ export function play(name: SfxName): void {
 }
 
 export function vibrate(pattern: number | number[] = 50): void {
+  if (muted) return
   try {
     navigator.vibrate?.(pattern)
   } catch {
     /* 不支持的平台忽略 */
   }
 }
+
+/* ---------------- 等待音乐：低音量合成氛围垫，每 8 秒换一个和弦 ---------------- */
+
+interface Ambient {
+  master: GainNode
+  oscs: OscillatorNode[]
+  lfo: OscillatorNode
+  timer: number
+  step: number
+}
+
+/** 和弦进行（Dm → Bb → F → Am），每个和弦三个声部的频率 */
+const AMBIENT_CHORDS: readonly (readonly [number, number, number])[] = [
+  [146.83, 220.0, 349.23],
+  [116.54, 174.61, 293.66],
+  [174.61, 261.63, 440.0],
+  [110.0, 164.81, 261.63],
+]
+const AMBIENT_CHORD_MS = 8000
+const AMBIENT_GAIN = 0.05
+
+let ambient: Ambient | null = null
+/** 调用方是否希望音乐在响（静音或上下文未解锁时先记下，条件满足后补启） */
+let ambientWanted = false
+
+/** 开始等待音乐；重复调用无副作用 */
+export function startAmbient(): void {
+  ambientWanted = true
+  if (muted || ambient) return
+  const c = getCtx()
+  if (!c || c.state !== 'running') return
+  try {
+    const t0 = c.currentTime
+    const master = c.createGain()
+    master.gain.setValueAtTime(0.0001, t0)
+    master.gain.linearRampToValueAtTime(AMBIENT_GAIN, t0 + 2.5)
+
+    const filter = c.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = 520
+    filter.Q.value = 0.7
+    filter.connect(master).connect(c.destination)
+
+    // 极慢的滤波器摆动，让长音不死板
+    const lfo = c.createOscillator()
+    lfo.frequency.value = 0.07
+    const lfoGain = c.createGain()
+    lfoGain.gain.value = 180
+    lfo.connect(lfoGain).connect(filter.frequency)
+    lfo.start(t0)
+
+    const oscs: OscillatorNode[] = []
+    AMBIENT_CHORDS[0]!.forEach((freq, voice) => {
+      for (const detune of [-5, 5]) {
+        const osc = c.createOscillator()
+        osc.type = voice === 0 ? 'sine' : 'triangle'
+        osc.frequency.value = freq
+        osc.detune.value = detune
+        const g = c.createGain()
+        g.gain.value = voice === 0 ? 0.5 : 0.3
+        osc.connect(g).connect(filter)
+        osc.start(t0)
+        oscs.push(osc)
+      }
+    })
+
+    const state: Ambient = { master, oscs, lfo, timer: 0, step: 0 }
+    state.timer = window.setInterval(() => {
+      state.step = (state.step + 1) % AMBIENT_CHORDS.length
+      const chord = AMBIENT_CHORDS[state.step]!
+      state.oscs.forEach((osc, i) => {
+        osc.frequency.setTargetAtTime(chord[Math.floor(i / 2)]!, c.currentTime, 0.6)
+      })
+    }, AMBIENT_CHORD_MS)
+    ambient = state
+  } catch {
+    ambient = null
+  }
+}
+
+/** 停止等待音乐（0.8 秒淡出） */
+export function stopAmbient(): void {
+  ambientWanted = false
+  teardownAmbient()
+}
+
+function teardownAmbient(): void {
+  const a = ambient
+  if (!a) return
+  ambient = null
+  window.clearInterval(a.timer)
+  const c = a.master.context as AudioContext
+  const t = c.currentTime
+  try {
+    a.master.gain.cancelScheduledValues(t)
+    a.master.gain.setValueAtTime(Math.max(a.master.gain.value, 0.0001), t)
+    a.master.gain.exponentialRampToValueAtTime(0.0001, t + 0.8)
+  } catch {
+    /* 上下文已关闭 */
+  }
+  window.setTimeout(() => {
+    for (const osc of a.oscs) {
+      try {
+        osc.stop()
+      } catch {
+        /* 已停止 */
+      }
+    }
+    try {
+      a.lfo.stop()
+    } catch {
+      /* 已停止 */
+    }
+    a.master.disconnect()
+  }, 900)
+}
+
+// 解锁后补启等待音乐（进大厅时通常还没有手势）
+onUnlock(() => {
+  if (ambientWanted && !muted && !ambient) startAmbient()
+})

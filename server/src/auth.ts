@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import jwt from 'jsonwebtoken'
 import { config } from './config'
+import { MemoryList, type Persistence } from './store/jsonl'
 
 export interface AuthPayload {
   uid: string
@@ -31,13 +32,18 @@ export interface UserProfile {
   avatar: string
 }
 
-/** 匿名用户档案（内存版，后续换 MySQL） */
+/** 匿名用户档案：内存索引 + JSON Lines 追加落盘（同一 uid 多条记录以最后一条为准） */
 export class UserStore {
   private users = new Map<string, UserProfile>()
+
+  constructor(private readonly persistence: Persistence<UserProfile> = new MemoryList()) {
+    for (const user of persistence.load()) this.users.set(user.uid, { ...user })
+  }
 
   create(nickname: string, avatar: string): UserProfile {
     const user = { uid: newUid(), nickname, avatar }
     this.users.set(user.uid, user)
+    this.persistence.append(user)
     return user
   }
 
@@ -49,6 +55,7 @@ export class UserStore {
     const user = this.users.get(uid)
     if (!user) return undefined
     Object.assign(user, patch)
+    this.persistence.append({ ...user })
     return user
   }
 }
